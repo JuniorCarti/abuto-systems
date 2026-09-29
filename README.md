@@ -9,8 +9,9 @@ Next.js App Router, React, TypeScript, Tailwind CSS 4, and CSS design tokens. Ge
 ## Structure
 
 - `app/`: route pages, metadata routes, favicon, and global styles
-- `components/`: shared navigation, footer, project card, headings, and contact form
+- `components/`: shared navigation, footer, project/person cards, headings, and contact form
 - `data/site.ts`: navigation, solution areas, and Abuto Systems product entries
+- `data/about.ts`: verified About copy, capabilities, team and advisor data, service areas, and approach steps
 - `data/projects.ts`: portfolio copy, status, ownership/client relationship, and destinations
 - `lib/contact.ts`: approved contact details and URL-encoded WhatsApp messages
 - `assets/images/`: source project imagery, kept outside the public asset directory
@@ -18,7 +19,7 @@ Next.js App Router, React, TypeScript, Tailwind CSS 4, and CSS design tokens. Ge
 - `assets/images/logo.png`: untouched master Abuto Systems logo
 - `public/brand/`: optimized website logo variants
 
-The `products` array in `data/site.ts` lists Abuto Systems products used by the footer. `portfolioProjects` in `data/projects.ts` drives the homepage preview and Products & Projects page. Keep each project's status and relationship accurate. When adding a product, update both arrays and create its detail route; add client or private projects to `portfolioProjects` only. Only add approved public destinations. Lineage opens its supplied URL in a new tab. Project card images are optimized WebP derivatives; source images remain in `assets/images/`. The available AskanPharma image was not supplied, so its card uses a typographic treatment pending approved artwork. ZaoGrid temporarily uses the Abuto Systems logo.
+The `products` array in `data/site.ts` lists Abuto Systems products used by the footer. `portfolioProjects` in `data/projects.ts` drives the homepage preview and Products & Projects page. Keep each project's status and relationship accurate. When adding a product, update both arrays and create its detail route; add client or private projects to `portfolioProjects` only. Only add approved public destinations. Lineage opens its supplied URL in a new tab. Project card images are optimized WebP derivatives; source images remain in `assets/images/`. The available AskanPharma image was not supplied, so its card uses a typographic treatment pending approved artwork. ZaoGrid temporarily uses the Abuto Systems logo. The About page reads its capability, team, advisor, priority service-area, and approach content from `data/about.ts`. Team cards use initials until approved portraits are provided; the data model supports future images.
 
 ## Local development
 

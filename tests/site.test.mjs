@@ -22,7 +22,7 @@ test("production routes render the company and product hierarchy", async () => {
       ["/solutions", "Technology for", "Custom Software"],
       ["/products", "Products", "TARI-UBC"],
       ["/products/askanpharma", "Askan", "A PRODUCT BY ABUTO SYSTEMS"],
-      ["/about", "Simple ideas", "AskanPharma"],
+      ["/about", "Practical software", "Ridge Junior Abuto"],
       ["/contact", "something useful", "Prepare inquiry"],
     ];
     for (const [path, heading, content] of routes) {

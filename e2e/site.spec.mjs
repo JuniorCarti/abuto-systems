@@ -6,7 +6,7 @@ const routes = [
   ["/solutions", "Technology for"],
   ["/products", "Products & Projects"],
   ["/products/askanpharma", "Askan"],
-  ["/about", "Simple ideas"],
+  ["/about", "Practical software"],
   ["/contact", "Let’s build"],
 ];
 
@@ -41,6 +41,51 @@ test("company logo link returns to the homepage", async ({ page }) => {
   await page.goto("/products/askanpharma");
   await page.getByRole("banner").getByRole("link", { name: "Abuto Systems" }).click();
   await expect(page).toHaveURL("/");
+});
+
+test("About page presents the approved company, team, service areas, and approach", async ({ page }) => {
+  await page.goto("/about");
+  await expect(page).toHaveTitle("About Abuto Systems | Practical Software Solutions");
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", "About Abuto Systems | Practical Software Solutions");
+  await expect(page.locator('meta[name="twitter:title"]')).toHaveAttribute("content", "About Abuto Systems | Practical Software Solutions");
+  await expect(page.locator("main h1")).toContainText("Practical software");
+  await expect(page.getByRole("heading", { name: "Make useful technology easier to access." })).toBeVisible();
+  for (const title of ["Business Management Systems", "Custom Software", "Digital Platforms", "Software Support & Improvement"]) {
+    await expect(page.getByRole("heading", { name: title })).toBeVisible();
+  }
+
+  const coreTeam = page.locator(".about-team-grid");
+  await expect(coreTeam.locator(".about-person")).toHaveCount(2);
+  await expect(coreTeam).toContainText("Ridge Junior Abuto");
+  await expect(coreTeam).toContainText("Founder & Software Engineer");
+  await expect(coreTeam).toContainText("Aaron Onyango");
+  await expect(coreTeam).toContainText("Co-Founder & Backend Developer");
+  await expect(coreTeam.locator(".about-person-portrait span").nth(0)).toHaveText("RA");
+  await expect(coreTeam.locator(".about-person-portrait span").nth(1)).toHaveText("AO");
+  await expect(page.locator(".about-person--advisor")).toContainText("Steven Abuto");
+  await expect(page.locator(".about-person--advisor")).toContainText("Advisor");
+  await expect(page.locator(".about-person--advisor .about-person-portrait span")).toHaveText("SA");
+
+  await expect(page.getByText("businesses and organizations across Kenya.")).toBeVisible();
+  const serviceAreas = await page.locator(".about-location-list li").allTextContents();
+  expect(serviceAreas).toEqual(["Kisumu", "Eldoret", "Nairobi", "Mombasa", "Nakuru"]);
+  await expect(page.getByText(/AskanPharma is already being used by pharmacies in Eldoret/)).toBeVisible();
+  await expect(page.locator(".about-approach-step")).toHaveCount(4);
+  await expect(page.getByRole("link", { name: /Explore Our Projects/ })).toHaveAttribute("href", "/products");
+  await expect(page.locator(".about-final-cta").getByRole("heading", { name: "Have a project in mind?" })).toBeVisible();
+  await expect(page.locator(".about-final-cta").getByRole("link", { name: /Talk to Us/ })).toHaveAttribute("href", "/contact");
+  await expect(page.locator('a[href*="linkedin.com"], a[href*="instagram.com"], a[href*="facebook.com"], a[href*="x.com"]')).toHaveCount(0);
+});
+
+test("About page fits desktop, tablet, and mobile widths", async ({ page }) => {
+  await page.goto("/about");
+  for (const [width, teamColumns] of [[1920, 2], [1440, 2], [1024, 2], [768, 2], [430, 1], [390, 1], [360, 1]]) {
+    await page.setViewportSize({ width, height: 900 });
+    const sizes = await page.evaluate(() => ({ viewport: innerWidth, document: document.documentElement.scrollWidth }));
+    expect(sizes.document, `About page horizontal overflow at ${width}px`).toBeLessThanOrEqual(sizes.viewport);
+    const columns = await page.locator(".about-team-grid").evaluate((grid) => getComputedStyle(grid).gridTemplateColumns.split(" ").length);
+    expect(columns, `core team columns at ${width}px`).toBe(teamColumns);
+  }
 });
 
 test("portfolio shows approved project status, ownership, and links", async ({ page }) => {
