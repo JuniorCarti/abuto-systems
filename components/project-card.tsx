@@ -1,15 +1,32 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { PortfolioProject } from "@/data/projects";
+import { buildWhatsAppUrl, contactDetails } from "@/lib/contact";
 
 export function ProjectCard({ project }: { project: PortfolioProject }) {
   const linkContent = <>{project.ctaLabel}<span aria-hidden="true">↗</span></>;
+  const href = project.whatsappMessage
+    ? buildWhatsAppUrl(contactDetails.primaryWhatsApp.number, project.whatsappMessage)
+    : project.href;
 
   return (
     <article className={`project-card project-card--${project.slug}`} data-project={project.slug}>
-      <div className="project-card-art" aria-hidden="true">
-        <span className="project-art-orbit" />
-        <span className="project-art-shape" />
-        <span className="project-art-line" />
+      <div className={`project-card-art${project.image ? " project-card-art--image" : ""}`}>
+        {project.image ? (
+          <Image
+            className={`project-card-image${project.image.fit === "contain" ? " project-card-image--contain" : ""}`}
+            src={project.image.src}
+            alt={project.image.alt}
+            fill
+            sizes="(max-width: 760px) 100vw, (max-width: 980px) 50vw, 33vw"
+            draggable={false}
+          />
+        ) : (
+          <div className="project-card-wordmark" aria-hidden="true">
+            <span>AskanPharma</span>
+            <small>by Abuto Systems</small>
+          </div>
+        )}
       </div>
       <div className="project-card-body">
         <div className="project-card-statuses">
@@ -26,12 +43,12 @@ export function ProjectCard({ project }: { project: PortfolioProject }) {
         {project.note && <p className="project-note">{project.note}</p>}
         {project.relationship && <p className="project-relationship">{project.relationship}</p>}
         <div className="project-card-action">
-          {project.external ? (
-            <a href={project.href} target="_blank" rel="noopener noreferrer" aria-label={`${project.ctaLabel} (opens in a new tab)`}>
+          {project.external || project.whatsappMessage ? (
+            <a href={href} target="_blank" rel="noopener noreferrer" aria-label={`${project.ctaLabel}${project.whatsappMessage ? " on WhatsApp" : ""} (opens in a new tab)`}>
               {linkContent}
             </a>
           ) : (
-            <Link href={project.href}>{linkContent}</Link>
+            <Link href={href}>{linkContent}</Link>
           )}
         </div>
       </div>

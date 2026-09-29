@@ -1,3 +1,5 @@
+import { whatsappMessages } from "@/lib/contact";
+
 export type PortfolioProject = {
   slug: string;
   name: string;
@@ -10,6 +12,8 @@ export type PortfolioProject = {
   href: string;
   ctaLabel: string;
   external?: boolean;
+  image?: { src: string; alt: string; fit?: "contain" | "cover" };
+  whatsappMessage?: string;
   featured: boolean;
 };
 
@@ -37,6 +41,7 @@ export const portfolioProjects = [
     href: "https://family-tree-a4c4f.web.app/",
     ctaLabel: "Visit Lineage",
     external: true,
+    image: { src: "/projects/lineage-card.webp", alt: "Lineage sign-in screen" },
     featured: true,
   },
   {
@@ -49,6 +54,8 @@ export const portfolioProjects = [
     note: "Previously developed as AgriSmart.",
     href: "/contact",
     ctaLabel: "Ask about ZaoGrid",
+    whatsappMessage: whatsappMessages.zaoGrid,
+    image: { src: "/projects/zaogrid-abuto-brand.webp", alt: "Abuto Systems logo, used temporarily for ZaoGrid", fit: "contain" },
     featured: true,
   },
   {
@@ -61,6 +68,7 @@ export const portfolioProjects = [
     relationship: "Owned by UBC — Unique Brand Creatives",
     href: "/contact",
     ctaLabel: "Discuss similar work",
+    image: { src: "/projects/tari-card.webp", alt: "TARI tax and revenue app artwork" },
     featured: false,
   },
   {
@@ -72,7 +80,9 @@ export const portfolioProjects = [
     status: "In Development",
     relationship: "Client project",
     href: "/contact",
-    ctaLabel: "Discuss a similar project",
+    ctaLabel: "Ask about GasFlow",
+    whatsappMessage: whatsappMessages.gasFlow,
+    image: { src: "/projects/gasflow-card.webp", alt: "GasFlow mobile application artwork" },
     featured: false,
   },
 ] satisfies PortfolioProject[];
