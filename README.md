@@ -1,0 +1,59 @@
+# Abuto Systems
+
+The corporate website for Abuto Systems, a company developing practical software and digital solutions for businesses and organizations. AskanPharma is presented as a separate product by Abuto Systems.
+
+## Stack
+
+Next.js App Router, React, TypeScript, Tailwind CSS 4, and CSS design tokens. Geist is loaded with `next/font`. The site uses server components except for the mobile navigation and contact form.
+
+## Structure
+
+- `app/`: route pages, metadata routes, favicon, and global styles
+- `components/`: shared navigation, footer, product card, headings, and contact form
+- `data/site.ts`: navigation, solution areas, and product entries
+
+The products array is the starting point for future products. Add a factual entry there, create its detail route, and verify product specific assets and copy before publishing. Do not reuse the AskanPharma visual treatment as a company logo.
+
+## Local development
+
+Requires Node.js 20.9 or newer and npm.
+
+```bash
+npm ci
+npm run dev
+```
+
+Open `http://localhost:3000`.
+
+## Environment
+
+Copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_SITE_URL` to the confirmed production origin when one exists. The variable is optional for local work. Without it, the sitemap has no absolute entries and metadata omits the base URL. Never commit `.env.local`.
+
+## Scripts and validation
+
+```bash
+npm run lint
+npm run typecheck
+npm run build
+npm test
+npm run test:e2e
+```
+
+`npm test` starts the production build on a temporary local port and checks all six routes plus the 404 page. Run it after `npm run build`.
+`npm run test:e2e` uses installed Microsoft Edge through Playwright to verify navigation, the contact draft, responsive widths, and automated WCAG 2.2 A/AA checks. Install Playwright’s browser or have Edge installed before running it on another machine.
+
+The current Next.js ESLint preset includes a React plugin that still calls an API removed in ESLint 10. The project uses current ESLint 10 and disables only that plugin’s legacy `react/*` rules; Next.js, React Hooks, TypeScript, and JSX accessibility rules remain active.
+
+The contact form currently validates an inquiry and offers a copyable draft. It **does not send messages**. Before launch, choose a real delivery channel or provider, add server side validation and abuse protection, publish verified contact details, and replace the draft flow. Do not place provider credentials in client code.
+
+## Deployment
+
+Import the repository into Vercel, set `NEXT_PUBLIC_SITE_URL` to the confirmed HTTPS origin, and run the production build. Configure the contact delivery flow before inviting inquiries. No production domain or deployment account is assumed here.
+
+## Brand and content
+
+Blue and green are centralized in `app/globals.css`. The corporate identity is a typographic wordmark. The AskanPharma page uses its own blue and green product treatment; a production-ready transparent AskanPharma logo asset has not been supplied. Current product wording stays intentionally high level. Add verified copy and a licensed product logo under `public/products/askanpharma/` once provided.
+
+## Security and SEO
+
+No secrets or external integrations are required for the current site. Keep environment files out of Git, review dependencies regularly, and use server side checks for any future form endpoint. Page metadata, robots, and a conditional sitemap are implemented. Set the confirmed site URL before deployment so canonical and social URLs can be completed accurately.
