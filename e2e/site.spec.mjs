@@ -4,7 +4,7 @@ import axe from "axe-core";
 const routes = [
   ["/", "Technology"],
   ["/solutions", "Technology for"],
-  ["/products", "Ideas made"],
+  ["/products", "Products & Projects"],
   ["/products/askanpharma", "Askan"],
   ["/about", "Simple ideas"],
   ["/contact", "Let’s build"],
@@ -43,6 +43,40 @@ test("company logo link returns to the homepage", async ({ page }) => {
   await expect(page).toHaveURL("/");
 });
 
+test("portfolio shows approved project status, ownership, and links", async ({ page }) => {
+  await page.goto("/");
+  const featured = page.locator(".project-grid--featured .project-card");
+  await expect(featured).toHaveCount(3);
+  await expect(featured.nth(0)).toHaveAttribute("data-project", "askanpharma");
+  await expect(featured.nth(1)).toHaveAttribute("data-project", "lineage");
+  await expect(featured.nth(2)).toHaveAttribute("data-project", "zaogrid");
+
+  await page.goto("/products");
+  await expect(page.locator(".project-card")).toHaveCount(5);
+
+  const project = (slug) => page.locator(`.project-card[data-project="${slug}"]`);
+  await expect(project("askanpharma")).toContainText("Deployed");
+  await expect(project("askanpharma")).toContainText("Abuto Systems product");
+
+  await expect(project("lineage")).toContainText("Deployed");
+  const lineageLink = project("lineage").getByRole("link", { name: "Visit Lineage (opens in a new tab)" });
+  await expect(lineageLink).toHaveAttribute("href", "https://family-tree-a4c4f.web.app/");
+  await expect(lineageLink).toHaveAttribute("target", "_blank");
+  await expect(lineageLink).toHaveAttribute("rel", "noopener noreferrer");
+
+  await expect(project("zaogrid")).toContainText("In Development");
+  await expect(project("zaogrid")).toContainText("Previously developed as AgriSmart.");
+  await expect(project("zaogrid").getByRole("link", { name: "Ask about ZaoGrid" })).toHaveAttribute("href", "/contact");
+
+  await expect(project("tari-ubc")).toContainText("Private Project");
+  await expect(project("tari-ubc")).toContainText("Owned by UBC — Unique Brand Creatives");
+  await expect(project("tari-ubc")).not.toContainText("Abuto Systems product");
+
+  await expect(project("gasflow")).toContainText("In Development");
+  await expect(project("gasflow")).toContainText("Client project");
+  await expect(project("gasflow").getByRole("link", { name: "Discuss a similar project" })).toHaveAttribute("href", "/contact");
+});
+
 test("logo, footer brand, and favicon load without broken images", async ({ page }) => {
   await page.goto("/");
   const socialImage = page.locator('meta[property="og:image"]');
@@ -68,11 +102,13 @@ test("logo, footer brand, and favicon load without broken images", async ({ page
 });
 
 test("layout fits the requested viewport widths", async ({ page }) => {
-  await page.goto("/");
-  for (const width of [320, 360, 375, 390, 430, 768, 1024, 1280, 1440, 1920]) {
+  await page.goto("/products");
+  for (const [width, columns] of [[320, 1], [360, 1], [375, 1], [390, 1], [430, 1], [768, 2], [1024, 3], [1280, 3], [1440, 3], [1920, 3]]) {
     await page.setViewportSize({ width, height: 900 });
     const sizes = await page.evaluate(() => ({ viewport: innerWidth, document: document.documentElement.scrollWidth }));
     expect(sizes.document, `horizontal overflow at ${width}px`).toBeLessThanOrEqual(sizes.viewport);
+    const columnCount = await page.locator(".project-grid").evaluate((grid) => getComputedStyle(grid).gridTemplateColumns.split(" ").length);
+    expect(columnCount, `portfolio column count at ${width}px`).toBe(columns);
   }
 });
 

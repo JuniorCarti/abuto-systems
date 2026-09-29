@@ -9,12 +9,13 @@ Next.js App Router, React, TypeScript, Tailwind CSS 4, and CSS design tokens. Ge
 ## Structure
 
 - `app/`: route pages, metadata routes, favicon, and global styles
-- `components/`: shared navigation, footer, product card, headings, and contact form
-- `data/site.ts`: navigation, solution areas, and product entries
+- `components/`: shared navigation, footer, project card, headings, and contact form
+- `data/site.ts`: navigation, solution areas, and Abuto Systems product entries
+- `data/projects.ts`: portfolio copy, status, ownership/client relationship, and destinations
 - `assets/images/logo.png`: untouched master Abuto Systems logo
 - `public/brand/`: optimized website logo variants
 
-The products array is the starting point for future products. Add a factual entry there, create its detail route, and verify product specific assets and copy before publishing. Do not reuse the AskanPharma visual treatment as a company logo.
+The `products` array in `data/site.ts` lists Abuto Systems products used by the footer. `portfolioProjects` in `data/projects.ts` drives the homepage preview and the Products & Projects page. Keep each project's status and relationship accurate when editing it. When adding a product, update both arrays and create its detail route; add client or private projects to `portfolioProjects` only. Only add public destinations that are approved; entries without a project page use the contact route, and Lineage opens its supplied public URL in a new tab. The cards use abstract branded artwork rather than implying that product screenshots or logos were supplied.
 
 ## Local development
 
@@ -42,7 +43,7 @@ npm run test:e2e
 ```
 
 `npm test` starts the production build on a temporary local port and checks all six routes plus the 404 page. Run it after `npm run build`.
-`npm run test:e2e` uses installed Microsoft Edge through Playwright to verify navigation, the contact draft, responsive widths, and automated WCAG 2.2 A/AA checks. Install Playwright’s browser or have Edge installed before running it on another machine.
+`npm run test:e2e` uses installed Microsoft Edge through Playwright to verify navigation, portfolio statuses and ownership, the Lineage link, the contact draft, responsive widths, and automated WCAG 2.2 A/AA checks. Install Playwright’s browser or have Edge installed before running it on another machine.
 
 The current Next.js ESLint preset includes a React plugin that still calls an API removed in ESLint 10. The project uses current ESLint 10 and disables only that plugin’s legacy `react/*` rules; Next.js, React Hooks, TypeScript, and JSX accessibility rules remain active.
 
