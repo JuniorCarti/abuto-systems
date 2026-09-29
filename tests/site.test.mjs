@@ -35,6 +35,11 @@ test("production routes render the company and product hierarchy", async () => {
       assert.match(html, new RegExp(heading, "i"), `${path} heading`);
       assert.ok(html.includes(content), `${path} content`);
       assert.match(html, /<title>[^<]+<\/title>/, `${path} metadata title`);
+      assert.doesNotMatch(html, /http:\/\/localhost:3000\/brand\/abuto-social\.jpg/, `${path} must not publish a localhost social URL`);
+      if (html.includes("/brand/abuto-social.jpg")) {
+        assert.match(html, /property="og:image" content="[^"]*\/brand\/abuto-social\.jpg"/, `${path} social preview metadata`);
+        assert.match(html, /name="twitter:card" content="summary_large_image"/, `${path} large social card metadata`);
+      }
     }
     const symbol = await fetch(`${base}/brand/abuto-symbol.png`);
     assert.equal(symbol.status, 200, "header brand mark asset");
@@ -42,6 +47,9 @@ test("production routes render the company and product hierarchy", async () => {
     const fullLogo = await fetch(`${base}/brand/abuto-logo-full.png`);
     assert.equal(fullLogo.status, 200, "footer full logo asset");
     assert.match(fullLogo.headers.get("content-type"), /image\/png/);
+    const socialLogo = await fetch(`${base}/brand/abuto-social.jpg`);
+    assert.equal(socialLogo.status, 200, "social preview logo asset");
+    assert.match(socialLogo.headers.get("content-type"), /image\/jpeg/);
     const favicon = await fetch(`${base}/icon.png`);
     assert.equal(favicon.status, 200, "brand favicon");
     assert.match(favicon.headers.get("content-type"), /image\/png/);

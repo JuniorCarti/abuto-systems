@@ -45,6 +45,14 @@ test("company logo link returns to the homepage", async ({ page }) => {
 
 test("logo, footer brand, and favicon load without broken images", async ({ page }) => {
   await page.goto("/");
+  const socialImage = page.locator('meta[property="og:image"]');
+  if (await socialImage.count()) {
+    await expect(socialImage).toHaveAttribute("content", /\/brand\/abuto-social\.jpg$/);
+    await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute("content", "summary_large_image");
+    await expect(page.locator('meta[name="twitter:image"]')).toHaveAttribute("content", /\/brand\/abuto-social\.jpg$/);
+  } else {
+    await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute("content", "summary");
+  }
   const footerLogo = page.getByRole("contentinfo").getByRole("img", { name: "Abuto Systems — Building practical digital solutions." });
   await footerLogo.scrollIntoViewIfNeeded();
   await expect(footerLogo).toBeVisible();
