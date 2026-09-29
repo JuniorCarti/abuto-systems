@@ -53,6 +53,9 @@ test("portfolio shows approved project status, ownership, and links", async ({ p
 
   await page.goto("/products");
   await expect(page.locator(".project-card")).toHaveCount(5);
+  await expect(page.locator(".project-card-wordmark")).toContainText("AskanPharma");
+  await page.locator(".project-card").last().scrollIntoViewIfNeeded();
+  await expect.poll(() => page.locator(".project-card img").evaluateAll((images) => images.length === 4 && images.every((image) => image.complete && image.naturalWidth > 0))).toBe(true);
 
   const project = (slug) => page.locator(`.project-card[data-project="${slug}"]`);
   await expect(project("askanpharma")).toContainText("Deployed");
@@ -66,7 +69,11 @@ test("portfolio shows approved project status, ownership, and links", async ({ p
 
   await expect(project("zaogrid")).toContainText("In Development");
   await expect(project("zaogrid")).toContainText("Previously developed as AgriSmart.");
-  await expect(project("zaogrid").getByRole("link", { name: "Ask about ZaoGrid" })).toHaveAttribute("href", "/contact");
+  const zaoLink = project("zaogrid").getByRole("link", { name: "Ask about ZaoGrid on WhatsApp (opens in a new tab)" });
+  const zaoUrl = new URL(await zaoLink.getAttribute("href"));
+  expect(zaoUrl.origin + zaoUrl.pathname).toBe("https://wa.me/254113245740");
+  expect(zaoUrl.searchParams.get("text")).toContain("ZaoGrid");
+  await expect(project("zaogrid").locator("img")).toHaveAttribute("alt", /Abuto Systems logo/);
 
   await expect(project("tari-ubc")).toContainText("Private Project");
   await expect(project("tari-ubc")).toContainText("Owned by UBC — Unique Brand Creatives");
@@ -74,7 +81,32 @@ test("portfolio shows approved project status, ownership, and links", async ({ p
 
   await expect(project("gasflow")).toContainText("In Development");
   await expect(project("gasflow")).toContainText("Client project");
-  await expect(project("gasflow").getByRole("link", { name: "Discuss a similar project" })).toHaveAttribute("href", "/contact");
+  const gasLink = project("gasflow").getByRole("link", { name: "Ask about GasFlow on WhatsApp (opens in a new tab)" });
+  expect(new URL(await gasLink.getAttribute("href")).searchParams.get("text")).toContain("similar project");
+  for (const slug of ["lineage", "tari-ubc", "gasflow"]) {
+    await expect(project(slug).locator("img")).toHaveAttribute("alt", /.+/);
+  }
+  for (const imagePath of ["gasflow-card.webp", "lineage-card.webp", "tari-card.webp", "zaogrid-abuto-brand.webp"]) {
+    const response = await page.request.get(`/projects/${imagePath}`);
+    expect(response.ok(), imagePath).toBe(true);
+    expect(response.headers()["content-type"]).toMatch(/image\/webp/);
+  }
+});
+
+test("contact options use the approved WhatsApp numbers and email", async ({ page }) => {
+  await page.goto("/contact");
+  const primary = page.getByRole("link", { name: /WhatsApp \+254 113 245 740/ }).first();
+  const secondary = page.getByRole("link", { name: /WhatsApp \+254 101 291 262/ }).first();
+  const primaryUrl = new URL(await primary.getAttribute("href"));
+  const secondaryUrl = new URL(await secondary.getAttribute("href"));
+  expect(primaryUrl.origin + primaryUrl.pathname).toBe("https://wa.me/254113245740");
+  expect(secondaryUrl.origin + secondaryUrl.pathname).toBe("https://wa.me/254101291262");
+  expect(primaryUrl.searchParams.get("text")).toContain("Hello Abuto Systems,");
+  await expect(primary).toHaveAttribute("target", "_blank");
+  await expect(primary).toHaveAttribute("rel", "noopener noreferrer");
+  await expect(page.getByRole("link", { name: /abutosystems@gmail\.com/ }).first()).toHaveAttribute("href", /^mailto:abutosystems@gmail\.com/);
+  const organizationJsonLd = await page.locator('script[type="application/ld+json"]').evaluate((script) => script.textContent);
+  expect(organizationJsonLd).toContain('"email":"abutosystems@gmail.com"');
 });
 
 test("logo, footer brand, and favicon load without broken images", async ({ page }) => {
@@ -114,13 +146,22 @@ test("layout fits the requested viewport widths", async ({ page }) => {
 
 test("contact form validates and prepares a clearly unsent inquiry", async ({ page }) => {
   await page.goto("/contact");
-  await expect(page.getByText("Message delivery is not configured yet.")).toBeVisible();
+  await expect(page.getByText(/This form prepares an inquiry draft\. It does not send messages/)).toBeVisible();
   await page.locator("input[name=name]").fill("Jamie Test");
   await page.locator("input[name=email]").fill("jamie@example.com");
   await page.locator("textarea[name=message]").fill("We need help planning a practical digital solution for our team.");
   await page.getByRole("button", { name: "Prepare inquiry" }).click();
   await expect(page.getByRole("heading", { name: "Your inquiry draft is ready." })).toBeVisible();
   await expect(page.getByLabel("Inquiry draft")).toHaveValue(/Jamie Test/);
+});
+
+test("AskanPharma inquiry CTA opens WhatsApp with product context", async ({ page }) => {
+  await page.goto("/products/askanpharma");
+  const link = page.getByRole("link", { name: "Ask about AskanPharma on WhatsApp" });
+  const url = new URL(await link.getAttribute("href"));
+  expect(url.origin + url.pathname).toBe("https://wa.me/254113245740");
+  expect(url.searchParams.get("text")).toContain("pharmacy management system");
+  await expect(link).toHaveAttribute("rel", "noopener noreferrer");
 });
 
 test("key pages meet WCAG 2.2 A and AA automated checks", async ({ page }) => {

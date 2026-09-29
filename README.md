@@ -12,10 +12,13 @@ Next.js App Router, React, TypeScript, Tailwind CSS 4, and CSS design tokens. Ge
 - `components/`: shared navigation, footer, project card, headings, and contact form
 - `data/site.ts`: navigation, solution areas, and Abuto Systems product entries
 - `data/projects.ts`: portfolio copy, status, ownership/client relationship, and destinations
+- `lib/contact.ts`: approved contact details and URL-encoded WhatsApp messages
+- `assets/images/`: source project imagery, kept outside the public asset directory
+- `public/projects/`: optimized WebP card imagery served by the portfolio
 - `assets/images/logo.png`: untouched master Abuto Systems logo
 - `public/brand/`: optimized website logo variants
 
-The `products` array in `data/site.ts` lists Abuto Systems products used by the footer. `portfolioProjects` in `data/projects.ts` drives the homepage preview and the Products & Projects page. Keep each project's status and relationship accurate when editing it. When adding a product, update both arrays and create its detail route; add client or private projects to `portfolioProjects` only. Only add public destinations that are approved; entries without a project page use the contact route, and Lineage opens its supplied public URL in a new tab. The cards use abstract branded artwork rather than implying that product screenshots or logos were supplied.
+The `products` array in `data/site.ts` lists Abuto Systems products used by the footer. `portfolioProjects` in `data/projects.ts` drives the homepage preview and Products & Projects page. Keep each project's status and relationship accurate. When adding a product, update both arrays and create its detail route; add client or private projects to `portfolioProjects` only. Only add approved public destinations. Lineage opens its supplied URL in a new tab. Project card images are optimized WebP derivatives; source images remain in `assets/images/`. The available AskanPharma image was not supplied, so its card uses a typographic treatment pending approved artwork. ZaoGrid temporarily uses the Abuto Systems logo.
 
 ## Local development
 
@@ -43,15 +46,15 @@ npm run test:e2e
 ```
 
 `npm test` starts the production build on a temporary local port and checks all six routes plus the 404 page. Run it after `npm run build`.
-`npm run test:e2e` uses installed Microsoft Edge through Playwright to verify navigation, portfolio statuses and ownership, the Lineage link, the contact draft, responsive widths, and automated WCAG 2.2 A/AA checks. Install Playwright’s browser or have Edge installed before running it on another machine.
+`npm run test:e2e` uses installed Microsoft Edge through Playwright to verify navigation, portfolio statuses and ownership, supplied project images, WhatsApp/email links, the contact draft, responsive widths, and automated WCAG 2.2 A/AA checks. Install Playwright’s browser or have Edge installed before running it on another machine.
 
 The current Next.js ESLint preset includes a React plugin that still calls an API removed in ESLint 10. The project uses current ESLint 10 and disables only that plugin’s legacy `react/*` rules; Next.js, React Hooks, TypeScript, and JSX accessibility rules remain active.
 
-The contact form currently validates an inquiry and offers a copyable draft. It **does not send messages**. Before launch, choose a real delivery channel or provider, add server side validation and abuse protection, publish verified contact details, and replace the draft flow. Do not place provider credentials in client code.
+The contact form validates an inquiry and offers a copyable draft. It **does not send messages**. Visitors can contact Abuto Systems directly at the approved WhatsApp numbers or email shown on the Contact page and footer. Before adding automated form delivery, choose a provider, add server side validation and abuse protection, and keep provider credentials out of client code.
 
 ## Deployment
 
-Import the repository into Vercel, set `NEXT_PUBLIC_SITE_URL` to the confirmed HTTPS origin, and run the production build. Configure the contact delivery flow before inviting inquiries. No production domain or deployment account is assumed here.
+Import the repository into Vercel, set `NEXT_PUBLIC_SITE_URL` to the confirmed HTTPS origin, and run the production build. Direct WhatsApp and email contact links are ready; the inquiry form remains a local draft and does not send submissions. No production domain or deployment account is assumed here.
 
 ## Brand and content
 

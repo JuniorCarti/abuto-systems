@@ -19,6 +19,6 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const organization = { "@context": "https://schema.org", "@type": "Organization", name: "Abuto Systems", ...(siteUrl ? { url: siteUrl } : {}) };
+  const organization = { "@context": "https://schema.org", "@type": "Organization", name: "Abuto Systems", email: "abutosystems@gmail.com", ...(siteUrl ? { url: siteUrl } : {}) };
   return <html lang="en" className={geist.variable}><body><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organization).replace(/</g, "\\u003c") }} /><a className="skip-link" href="#main">Skip to content</a><Header />{children}<Footer /></body></html>;
 }

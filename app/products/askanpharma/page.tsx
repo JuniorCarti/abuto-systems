@@ -1,8 +1,55 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { buildWhatsAppUrl, contactDetails, whatsappMessages } from "@/lib/contact";
 
-export const metadata: Metadata = { title: "AskanPharma", description: "AskanPharma is a pharmacy management system by Abuto Systems.", alternates: process.env.NEXT_PUBLIC_SITE_URL ? { canonical: `${process.env.NEXT_PUBLIC_SITE_URL}/products/askanpharma` } : undefined };
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+
+export const metadata: Metadata = {
+  title: "AskanPharma",
+  description: "AskanPharma is a pharmacy management system by Abuto Systems.",
+  alternates: siteUrl ? { canonical: `${siteUrl}/products/askanpharma` } : undefined,
+};
 
 export default function AskanPharmaPage() {
-  return <main id="main"><section className="askan-hero"><div className="shell askan-grid"><div><Link className="back-link" href="/products">← All products</Link><div className="eyebrow"><span className="eyebrow-line" />A PRODUCT BY ABUTO SYSTEMS</div><h1>Askan<span>Pharma</span><i>.</i></h1><p className="askan-subtitle">Pharmacy Management System</p><p className="askan-intro">Practical software for pharmacy operations.</p><Link className="button button-green" href="/contact">Ask about AskanPharma <span aria-hidden="true">↗</span></Link></div><div className="askan-visual" aria-hidden="true"><div className="askan-circle" /><div className="askan-tile"><span>PHARMACY MANAGEMENT SYSTEM</span><strong>Built for the<br />work behind care.</strong><i /></div></div></div></section><section className="section askan-info"><div className="shell statement-grid"><div className="eyebrow"><span className="eyebrow-line" />THE IDEA</div><div><h2>A clearer way to run the everyday.</h2><p>AskanPharma brings pharmacy work into one focused system. It is developed by Abuto Systems, with its own product identity and a shared belief in useful technology.</p><Link className="text-link" href="/about">About Abuto Systems <span aria-hidden="true">↗</span></Link></div></div></section></main>;
+  return (
+    <main id="main">
+      <section className="askan-hero">
+        <div className="shell askan-grid">
+          <div>
+            <Link className="back-link" href="/products">← All products</Link>
+            <div className="eyebrow"><span className="eyebrow-line" />A PRODUCT BY ABUTO SYSTEMS</div>
+            <h1>Askan<span>Pharma</span><i>.</i></h1>
+            <p className="askan-subtitle">Pharmacy Management System</p>
+            <p className="askan-intro">Practical software for pharmacy operations.</p>
+            <a
+              className="button button-green"
+              href={buildWhatsAppUrl(contactDetails.primaryWhatsApp.number, whatsappMessages.askanPharma)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Ask about AskanPharma on WhatsApp <span aria-hidden="true">↗</span>
+            </a>
+          </div>
+          <div className="askan-visual" aria-hidden="true">
+            <div className="askan-circle" />
+            <div className="askan-tile">
+              <span>PHARMACY MANAGEMENT SYSTEM</span>
+              <strong>Built for the<br />work behind care.</strong>
+              <i />
+            </div>
+          </div>
+        </div>
+      </section>
+      <section className="section askan-info">
+        <div className="shell statement-grid">
+          <div className="eyebrow"><span className="eyebrow-line" />THE IDEA</div>
+          <div>
+            <h2>A clearer way to run the everyday.</h2>
+            <p>AskanPharma brings pharmacy work into one focused system. It is developed by Abuto Systems, with its own product identity and a shared belief in useful technology.</p>
+            <Link className="text-link" href="/about">About Abuto Systems <span aria-hidden="true">↗</span></Link>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
 }
