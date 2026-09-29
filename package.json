@@ -1,0 +1,31 @@
+{
+  "name": "abuto-systems",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint app components data tests e2e next.config.ts eslint.config.mjs playwright.config.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/site.test.mjs",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "next": "16.3.7",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "axe-core": "^4.13.0",
+    "eslint": "^10.11.0",
+    "eslint-config-next": "16.3.7",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
