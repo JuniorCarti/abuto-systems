@@ -36,6 +36,15 @@ test("production routes render the company and product hierarchy", async () => {
       assert.ok(html.includes(content), `${path} content`);
       assert.match(html, /<title>[^<]+<\/title>/, `${path} metadata title`);
     }
+    const symbol = await fetch(`${base}/brand/abuto-symbol.png`);
+    assert.equal(symbol.status, 200, "header brand mark asset");
+    assert.match(symbol.headers.get("content-type"), /image\/png/);
+    const fullLogo = await fetch(`${base}/brand/abuto-logo-full.png`);
+    assert.equal(fullLogo.status, 200, "footer full logo asset");
+    assert.match(fullLogo.headers.get("content-type"), /image\/png/);
+    const favicon = await fetch(`${base}/icon.png`);
+    assert.equal(favicon.status, 200, "brand favicon");
+    assert.match(favicon.headers.get("content-type"), /image\/png/);
     const missing = await fetch(`${base}/a-page-that-does-not-exist`);
     assert.equal(missing.status, 404);
     assert.match(await missing.text(), /That page isn’t here/);

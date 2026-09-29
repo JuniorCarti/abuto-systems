@@ -15,7 +15,9 @@ test("all pages load with useful titles and working primary navigation", async (
     await page.goto(path);
     await expect(page).toHaveTitle(/Abuto Systems/);
     await expect(page.locator("main h1").first()).toContainText(heading);
-    await expect(page.getByRole("banner").getByRole("link", { name: "Abuto Systems home" })).toBeVisible();
+    const brandLink = page.getByRole("banner").getByRole("link", { name: "Abuto Systems" });
+    await expect(brandLink).toBeVisible();
+    await expect(brandLink.getByRole("img", { name: "Abuto Systems" })).toBeVisible();
   }
   await page.goto("/a-page-that-does-not-exist");
   await expect(page.getByRole("heading", { name: "That page isn’t here." })).toBeVisible();
@@ -35,9 +37,31 @@ test("mobile menu opens and closes with the keyboard", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Open menu" })).toBeFocused();
 });
 
+test("company logo link returns to the homepage", async ({ page }) => {
+  await page.goto("/products/askanpharma");
+  await page.getByRole("banner").getByRole("link", { name: "Abuto Systems" }).click();
+  await expect(page).toHaveURL("/");
+});
+
+test("logo, footer brand, and favicon load without broken images", async ({ page }) => {
+  await page.goto("/");
+  const footerLogo = page.getByRole("contentinfo").getByRole("img", { name: "Abuto Systems — Building practical digital solutions." });
+  await footerLogo.scrollIntoViewIfNeeded();
+  await expect(footerLogo).toBeVisible();
+  await expect.poll(() => footerLogo.evaluate((image) => image.complete && image.naturalWidth > 0)).toBe(true);
+  const images = await page.locator("img").evaluateAll((items) => items.map((image) => ({ alt: image.alt, loaded: image.complete && image.naturalWidth > 0 })));
+  expect(images.length).toBeGreaterThanOrEqual(2);
+  expect(images.every(({ loaded }) => loaded), JSON.stringify(images)).toBe(true);
+  const favicon = await page.locator('link[rel="icon"]').first().getAttribute("href");
+  expect(favicon).toBeTruthy();
+  const faviconResponse = await page.request.get(favicon);
+  expect(faviconResponse.ok()).toBe(true);
+  expect(faviconResponse.headers()["content-type"]).toMatch(/image\/png/);
+});
+
 test("layout fits the requested viewport widths", async ({ page }) => {
   await page.goto("/");
-  for (const width of [320, 375, 390, 430, 768, 1024, 1280, 1440]) {
+  for (const width of [320, 360, 375, 390, 430, 768, 1024, 1280, 1440, 1920]) {
     await page.setViewportSize({ width, height: 900 });
     const sizes = await page.evaluate(() => ({ viewport: innerWidth, document: document.documentElement.scrollWidth }));
     expect(sizes.document, `horizontal overflow at ${width}px`).toBeLessThanOrEqual(sizes.viewport);

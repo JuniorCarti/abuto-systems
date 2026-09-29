@@ -11,6 +11,8 @@ Next.js App Router, React, TypeScript, Tailwind CSS 4, and CSS design tokens. Ge
 - `app/`: route pages, metadata routes, favicon, and global styles
 - `components/`: shared navigation, footer, product card, headings, and contact form
 - `data/site.ts`: navigation, solution areas, and product entries
+- `assets/images/logo.png`: untouched master Abuto Systems logo
+- `public/brand/`: optimized website logo variants
 
 The products array is the starting point for future products. Add a factual entry there, create its detail route, and verify product specific assets and copy before publishing. Do not reuse the AskanPharma visual treatment as a company logo.
 
@@ -52,7 +54,7 @@ Import the repository into Vercel, set `NEXT_PUBLIC_SITE_URL` to the confirmed H
 
 ## Brand and content
 
-Blue and green are centralized in `app/globals.css`. The corporate identity is a typographic wordmark. The AskanPharma page uses its own blue and green product treatment; a production-ready transparent AskanPharma logo asset has not been supplied. Current product wording stays intentionally high level. Add verified copy and a licensed product logo under `public/products/askanpharma/` once provided.
+Blue and green are centralized in `app/globals.css`. The supplied Abuto Systems logo is the corporate identity. Keep `assets/images/logo.png` as the untouched master. The header uses a tightly cropped transparent mark with the Abuto Systems wordmark; the footer uses the full logo on a light surface so its dark lettering remains legible. `public/brand/abuto-symbol.png` and `public/brand/abuto-logo-full.png` are optimized from that source, and `app/icon.png` uses the standalone mark for browser identity. Preserve the brand colors when preparing future variants. The AskanPharma page uses its separate blue and green product treatment; a production-ready transparent AskanPharma logo asset has not been supplied. Current product wording stays intentionally high level. Add verified copy and a licensed product logo under `public/products/askanpharma/` once provided.
 
 ## Security and SEO
 
