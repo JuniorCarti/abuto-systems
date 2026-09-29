@@ -1,0 +1,8 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+
+export const metadata: Metadata = { title: "About", description: "Abuto Systems builds practical digital solutions for businesses and organizations.", alternates: process.env.NEXT_PUBLIC_SITE_URL ? { canonical: `${process.env.NEXT_PUBLIC_SITE_URL}/about` } : undefined };
+
+export default function AboutPage() {
+  return <main id="main"><section className="page-hero"><div className="shell"><div className="eyebrow"><span className="eyebrow-line" />ABOUT ABUTO SYSTEMS</div><h1>Simple ideas.<br /><em>Useful technology.</em></h1><p>We develop practical software and digital solutions for businesses and organizations.</p></div></section><section className="section about-page-content"><div className="shell about-page-grid"><div><span className="large-index">01 / THE APPROACH</span><h2>Technology should make work easier.</h2></div><div><p>We build around real problems and the people who face them. That means clear thinking, focused design and software people can actually use.</p><p>Our work spans custom solutions and products built for specific needs. AskanPharma is one such product: a pharmacy management system by Abuto Systems.</p><Link className="text-link" href="/products">Explore our product <span aria-hidden="true">↗</span></Link></div></div></section><section className="simple-cta"><div className="shell simple-cta-inner"><div><h2>Have something useful in mind?</h2><p>We would like to hear about it.</p></div><Link href="/contact" className="button button-green">Talk to Us <span aria-hidden="true">↗</span></Link></div></section></main>;
+}
