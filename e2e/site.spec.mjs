@@ -23,6 +23,59 @@ test("all pages load with useful titles and working primary navigation", async (
   await expect(page.getByRole("heading", { name: "That page isn’t here." })).toBeVisible();
 });
 
+test("preview pages return production canonicals, security headers, and a real 404", async ({ request }) => {
+  for (const [path] of routes) {
+    const response = await request.get(path);
+    expect(response.status(), `${path} status`).toBe(200);
+    expect(response.headers()["x-content-type-options"]).toBe("nosniff");
+    expect(response.headers()["x-frame-options"]).toBe("DENY");
+    expect(response.headers()["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+    if (new URL(response.url()).hostname.endsWith(".workers.dev")) {
+      expect(response.headers()["x-robots-tag"]).toBe("noindex");
+    }
+    const html = await response.text();
+    const canonicalPath = path === "/" ? "" : path;
+    expect(html).toContain(`rel="canonical" href="https://abutosystems.com${canonicalPath}"`);
+    expect(html).not.toMatch(/localhost|workers\.dev/);
+  }
+
+  const missing = await request.get("/a-page-that-does-not-exist");
+  expect(missing.status()).toBe(404);
+  expect(await missing.text()).toMatch(/That page/);
+
+  const robots = await request.get("/robots.txt");
+  expect(robots.status()).toBe(200);
+  expect(await robots.text()).toContain("https://abutosystems.com/sitemap.xml");
+  const sitemap = await request.get("/sitemap.xml");
+  expect(sitemap.status()).toBe(200);
+  expect(await sitemap.text()).toContain("https://abutosystems.com/products/askanpharma");
+  for (const asset of ["/brand/abuto-symbol.png", "/brand/abuto-logo-full.png", "/brand/abuto-social.jpg", "/icon.png", "/projects/lineage-card.webp", "/projects/zaogrid-abuto-brand.webp", "/projects/tari-card.webp", "/projects/gasflow-card.webp"]) {
+    const response = await request.get(asset);
+    expect(response.status(), `${asset} status`).toBe(200);
+    if (new URL(response.url()).hostname.endsWith(".workers.dev")) {
+      expect(response.headers()["x-robots-tag"]).toBe("noindex");
+    }
+  }
+});
+
+test("in-app navigation renders routes without missing RSC payloads", async ({ page }) => {
+  const failures = [];
+  page.on("response", (response) => {
+    if (response.status() >= 400) failures.push(`${response.status()} ${response.url()}`);
+  });
+  page.on("console", (message) => {
+    if (message.type() === "error") failures.push(`console ${message.text()}`);
+  });
+  await page.goto("/");
+  const origin = new URL(page.url()).origin;
+  for (const [name, path] of [["Solutions", "/solutions"], ["Products", "/products"], ["About", "/about"], ["Contact", "/contact"]]) {
+    await page.locator("header").getByRole("link", { name, exact: true }).click();
+    await expect(page).toHaveURL(new URL(path, origin).href);
+    await expect(page.locator("main h1").first()).toBeVisible();
+  }
+  expect(failures).toEqual([]);
+});
+
 test("mobile menu opens and closes with the keyboard", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");

@@ -1,6 +1,8 @@
 import type { MetadataRoute } from "next";
+import { siteUrl } from "@/lib/site";
+
+export const dynamic = "force-static";
 
 export default function robots(): MetadataRoute.Robots {
-  const url = process.env.NEXT_PUBLIC_SITE_URL;
-  return { rules: { userAgent: "*", allow: "/" }, ...(url ? { sitemap: `${url.replace(/\/$/, "")}/sitemap.xml` } : {}) };
+  return { rules: { userAgent: "*", allow: "/" }, sitemap: `${siteUrl}/sitemap.xml` };
 }

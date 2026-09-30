@@ -2,19 +2,18 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ProjectCard } from "@/components/project-card";
 import { portfolioProjects } from "@/data/projects";
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+import { siteUrl } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Products & Projects",
   description:
     "Explore software products and selected project work in the Abuto Systems portfolio, including AskanPharma, Lineage, ZaoGrid, TARI-UBC and GasFlow.",
-  alternates: siteUrl ? { canonical: `${siteUrl}/products` } : undefined,
+  alternates: { canonical: `${siteUrl}/products` },
   openGraph: {
     title: "Products & Projects | Abuto Systems",
     description:
       "Explore software products and selected project work in the Abuto Systems portfolio.",
-    url: siteUrl ? `${siteUrl}/products` : undefined,
+    url: `${siteUrl}/products`,
   },
   twitter: {
     title: "Products & Projects | Abuto Systems",

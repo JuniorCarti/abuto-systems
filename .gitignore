@@ -18,6 +18,10 @@
 # next.js
 /.next/
 /out/
+/.wrangler/
+/dist/
+/.vinext/
+/.vite/
 
 # production
 /build
@@ -42,3 +46,4 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.cloudflare/

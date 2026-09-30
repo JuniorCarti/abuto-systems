@@ -1,20 +1,26 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const port = 35000 + Math.floor(Math.random() * 10000);
 const base = `http://127.0.0.1:${port}`;
 
 async function waitForServer() {
-  for (let attempt = 0; attempt < 60; attempt++) {
+  for (let attempt = 0; attempt < 120; attempt++) {
     try { const response = await fetch(base); if (response.ok) return; } catch { /* Server is still starting. */ }
     await new Promise(resolve => setTimeout(resolve, 250));
   }
-  throw new Error("Production server did not start within 15 seconds");
+  throw new Error("Cloudflare Workers preview did not start within 30 seconds");
 }
 
-test("production routes render the company and product hierarchy", async () => {
-  const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-p", String(port)], { cwd: process.cwd(), stdio: "ignore" });
+test("production routes render through Wrangler's local Worker runtime", async () => {
+  const server = spawn(process.execPath, ["node_modules/wrangler/bin/wrangler.js", "dev", "--ip", "127.0.0.1", "--port", String(port)], {
+    cwd: process.cwd(),
+    stdio: "ignore",
+    env: { ...process.env, XDG_CONFIG_HOME: join(tmpdir(), "abuto-systems-wrangler-config") },
+  });
   try {
     await waitForServer();
     const routes = [
@@ -35,6 +41,7 @@ test("production routes render the company and product hierarchy", async () => {
       assert.match(html, new RegExp(heading, "i"), `${path} heading`);
       assert.ok(html.includes(content), `${path} content`);
       assert.match(html, /<title>[^<]+<\/title>/, `${path} metadata title`);
+      assert.ok(html.includes(`rel="canonical" href="https://abutosystems.com${path === "/" ? "" : path}"`), `${path} production canonical`);
       assert.doesNotMatch(html, /http:\/\/localhost:3000\/brand\/abuto-social\.jpg/, `${path} must not publish a localhost social URL`);
       if (html.includes("/brand/abuto-social.jpg")) {
         assert.match(html, /property="og:image" content="[^"]*\/brand\/abuto-social\.jpg"/, `${path} social preview metadata`);
@@ -53,6 +60,17 @@ test("production routes render the company and product hierarchy", async () => {
     const favicon = await fetch(`${base}/icon.png`);
     assert.equal(favicon.status, 200, "brand favicon");
     assert.match(favicon.headers.get("content-type"), /image\/png/);
+    for (const asset of ["lineage-card.webp", "zaogrid-abuto-brand.webp", "tari-card.webp", "gasflow-card.webp"]) {
+      const response = await fetch(`${base}/projects/${asset}`);
+      assert.equal(response.status, 200, `${asset} portfolio asset`);
+      assert.match(response.headers.get("content-type"), /image\/webp/);
+    }
+    const robots = await fetch(`${base}/robots.txt`);
+    assert.match(await robots.text(), /Sitemap: https:\/\/abutosystems\.com\/sitemap\.xml/);
+    const sitemap = await fetch(`${base}/sitemap.xml`);
+    const sitemapXml = await sitemap.text();
+    assert.match(sitemapXml, /https:\/\/abutosystems\.com\/products\/askanpharma/);
+    assert.doesNotMatch(sitemapXml, /localhost|workers\.dev/);
     const missing = await fetch(`${base}/a-page-that-does-not-exist`);
     assert.equal(missing.status, 404);
     assert.match(await missing.text(), /That page isn’t here/);

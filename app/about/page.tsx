@@ -2,19 +2,18 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AboutPersonCard } from "@/components/about-person-card";
 import { advisor, approachSteps, capabilities, coreTeam, priorityServiceAreas } from "@/data/about";
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+import { siteUrl } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: { absolute: "About Abuto Systems | Practical Software Solutions" },
   description:
     "Learn about Abuto Systems, the team behind our software products and client solutions, what we build, how we work, and the businesses we serve across Kenya.",
-  alternates: siteUrl ? { canonical: `${siteUrl}/about` } : undefined,
+  alternates: { canonical: `${siteUrl}/about` },
   openGraph: {
     title: "About Abuto Systems | Practical Software Solutions",
     description:
       "Meet the team, learn what Abuto Systems builds, and see how we work with businesses and organizations across Kenya.",
-    url: siteUrl ? `${siteUrl}/about` : undefined,
+    url: `${siteUrl}/about`,
   },
   twitter: {
     title: "About Abuto Systems | Practical Software Solutions",

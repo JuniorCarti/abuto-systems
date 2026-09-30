@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { buildWhatsAppUrl, contactDetails, whatsappMessages } from "@/lib/contact";
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+import { siteUrl } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "AskanPharma",
   description: "AskanPharma is a pharmacy management system by Abuto Systems.",
-  alternates: siteUrl ? { canonical: `${siteUrl}/products/askanpharma` } : undefined,
+  alternates: { canonical: `${siteUrl}/products/askanpharma` },
 };
 
 export default function AskanPharmaPage() {

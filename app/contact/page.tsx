@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import { ContactForm } from "@/components/contact-form";
 import { buildWhatsAppUrl, contactDetails, whatsappMessages } from "@/lib/contact";
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+import { siteUrl } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Contact",
   description: "Contact Abuto Systems by WhatsApp or email about a practical digital solution.",
-  alternates: siteUrl ? { canonical: `${siteUrl}/contact` } : undefined,
+  alternates: { canonical: `${siteUrl}/contact` },
 };
 
 export default function ContactPage() {
