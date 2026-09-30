@@ -9,6 +9,7 @@
     "data/**/*.tsx",
     "lib/**/*.ts",
     "lib/**/*.tsx",
+    "types/**/*.d.ts",
     "tests/**/*.ts",
     "tests/**/*.tsx",
     "e2e/**/*.ts",

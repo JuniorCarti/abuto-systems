@@ -28,8 +28,9 @@ test("production routes render through Wrangler's local Worker runtime", async (
       ["/solutions", "Technology for", "Custom Software"],
       ["/products", "Products", "TARI-UBC"],
       ["/products/askanpharma", "Askan", "A PRODUCT BY ABUTO SYSTEMS"],
+      ["/products/askanpharma/demo", "Request an", "VIRTUAL PRODUCT WALKTHROUGH"],
       ["/about", "Practical software", "Ridge Junior Abuto"],
-      ["/contact", "something useful", "Prepare inquiry"],
+      ["/contact", "something useful", "Send Enquiry"],
     ];
     for (const [path, heading, content] of routes) {
       const response = await fetch(`${base}${path}`);
@@ -70,6 +71,19 @@ test("production routes render through Wrangler's local Worker runtime", async (
     const sitemap = await fetch(`${base}/sitemap.xml`);
     const sitemapXml = await sitemap.text();
     assert.match(sitemapXml, /https:\/\/abutosystems\.com\/products\/askanpharma/);
+    assert.match(sitemapXml, /https:\/\/abutosystems\.com\/products\/askanpharma\/demo/);
+    const unsupportedFormMethod = await fetch(`${base}/api/leads`);
+    assert.equal(unsupportedFormMethod.status, 405);
+    const invalidLead = await fetch(`${base}/api/leads`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "demo" }) });
+    assert.equal(invalidLead.status, 400);
+    const invalidLeadResult = await invalidLead.json();
+    assert.match(invalidLeadResult.error, /check the highlighted form details/);
+    const unverifiedLead = await fetch(`${base}/api/leads`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ kind: "inquiry", name: "Jamie Test", email: "jamie@example.com", message: "A valid example inquiry for the endpoint." }),
+    });
+    assert.equal(unverifiedLead.status, 403, "valid payload is rejected without server-verified Turnstile");
     assert.doesNotMatch(sitemapXml, /localhost|workers\.dev/);
     const missing = await fetch(`${base}/a-page-that-does-not-exist`);
     assert.equal(missing.status, 404);

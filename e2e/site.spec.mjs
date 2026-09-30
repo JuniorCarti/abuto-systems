@@ -6,6 +6,7 @@ const routes = [
   ["/solutions", "Technology for"],
   ["/products", "Products & Projects"],
   ["/products/askanpharma", "Askan"],
+  ["/products/askanpharma/demo", "Request an"],
   ["/about", "Practical software"],
   ["/contact", "Let’s build"],
 ];
@@ -207,6 +208,16 @@ test("contact options use the approved WhatsApp numbers and email", async ({ pag
   expect(organizationJsonLd).toContain('"email":"abutosystems@gmail.com"');
 });
 
+test("contact page offers virtual hours, a demo pathway, and virtual consultation", async ({ page }) => {
+  await page.goto("/contact");
+  await expect(page.locator("#main").getByRole("heading", { name: "Virtual hours" })).toBeVisible();
+  await expect(page.getByText("Monday–Friday").first()).toBeVisible();
+  await expect(page.getByText("Saturday").first()).toBeVisible();
+  await expect(page.getByText("East Africa Time (EAT · UTC+3)").first()).toBeVisible();
+  await expect(page.getByRole("link", { name: /Request an AskanPharma demo/ })).toHaveAttribute("href", "/products/askanpharma/demo");
+  await expect(page.getByRole("link", { name: /Virtual consultation/ })).toHaveAttribute("href", "/contact#enquiry-form");
+});
+
 test("logo, footer brand, and favicon load without broken images", async ({ page }) => {
   await page.goto("/");
   const socialImage = page.locator('meta[property="og:image"]');
@@ -221,6 +232,10 @@ test("logo, footer brand, and favicon load without broken images", async ({ page
   await footerLogo.scrollIntoViewIfNeeded();
   await expect(footerLogo).toBeVisible();
   await expect.poll(() => footerLogo.evaluate((image) => image.complete && image.naturalWidth > 0)).toBe(true);
+  for (const image of await page.locator(".project-card img").all()) {
+    await image.scrollIntoViewIfNeeded();
+    await expect.poll(() => image.evaluate((node) => node.complete && node.naturalWidth > 0)).toBe(true);
+  }
   const images = await page.locator("img").evaluateAll((items) => items.map((image) => ({ alt: image.alt, loaded: image.complete && image.naturalWidth > 0 })));
   expect(images.length).toBeGreaterThanOrEqual(2);
   expect(images.every(({ loaded }) => loaded), JSON.stringify(images)).toBe(true);
@@ -242,19 +257,74 @@ test("layout fits the requested viewport widths", async ({ page }) => {
   }
 });
 
-test("contact form validates and prepares a clearly unsent inquiry", async ({ page }) => {
+test("contact form collects a real enquiry and gates submission on Turnstile setup", async ({ page }) => {
   await page.goto("/contact");
-  await expect(page.getByText(/This form prepares an inquiry draft\. It does not send messages/)).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Enquiry type" })).toHaveValue("General Enquiry");
   await page.locator("input[name=name]").fill("Jamie Test");
   await page.locator("input[name=email]").fill("jamie@example.com");
   await page.locator("textarea[name=message]").fill("We need help planning a practical digital solution for our team.");
-  await page.getByRole("button", { name: "Prepare inquiry" }).click();
-  await expect(page.getByRole("heading", { name: "Your inquiry draft is ready." })).toBeVisible();
-  await expect(page.getByLabel("Inquiry draft")).toHaveValue(/Jamie Test/);
+  const button = page.getByRole("button", { name: "Send Enquiry" });
+  if (await page.locator(".lead-verification").count()) await expect(button).toBeEnabled();
+  else {
+    await expect(button).toBeDisabled();
+    await expect(page.getByText(/Secure form verification is not configured/)).toBeVisible();
+  }
+  await expect(page.getByRole("link", { name: /abutosystems@gmail\.com/ }).first()).toBeVisible();
+});
+
+test("demo route presents virtual request fields, business hours, and non-booking language", async ({ page }) => {
+  await page.goto("/products/askanpharma/demo");
+  await expect(page.getByRole("heading", { name: /Request an AskanPharma demo/ })).toBeVisible();
+  for (const label of ["Full name", "Pharmacy / Business name", "Email address", "Phone number", "Town / Location", "Number of pharmacy branches", "Preferred demo date", "Preferred demo time", "Preferred contact method"]) {
+    await expect(page.getByLabel(new RegExp(label))).toBeVisible();
+  }
+  await expect(page.locator("#main .virtual-hours-list dt").first()).toBeVisible();
+  await expect(page.locator("#main").getByText("East Africa Time (EAT · UTC+3)")).toBeVisible();
+  await expect(page.getByText(/does not reserve a time/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Request a Demo" })).toBeEnabled();
+  await page.locator('input[name="preferredDate"]').fill("2026-10-03");
+  const preferredTime = page.locator('select[name="preferredTime"]');
+  await expect(preferredTime.locator("option")).toHaveCount(16);
+  await expect(preferredTime.locator("option").nth(1)).toHaveText("9:00 AM EAT");
+  await expect(preferredTime.locator("option").last()).toHaveText("4:00 PM EAT");
+  await page.locator('input[name="preferredDate"]').fill("2026-10-04");
+  await expect(preferredTime).toBeDisabled();
+  await page.reload();
+  await expect(page.locator("#demo-request-form")).toBeVisible();
+});
+
+test("demo request is rejected when the Turnstile token is absent", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.turnstile = { render() { return "e2e-test-widget"; }, reset() {}, remove() {} };
+  });
+  await page.goto("/products/askanpharma/demo");
+  await page.locator('input[name="name"]').fill("Abuto E2E Lead");
+  await page.locator('input[name="organization"]').fill("E2E Pharmacy");
+  await page.locator('input[name="email"]').fill("e2e-abuto@example.com");
+  await page.locator('input[name="phone"]').fill("+254700000000");
+  const dateInput = page.locator('input[name="preferredDate"]');
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Nairobi", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const nextDate = new Date(`${today}T00:00:00.000Z`);
+  nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+  while (nextDate.getUTCDay() === 0) nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+  await dateInput.fill(nextDate.toISOString().slice(0, 10));
+  await page.locator('select[name="preferredTime"]').selectOption("10:00");
+
+  await page.getByRole("button", { name: "Request a Demo" }).click();
+  await expect(page.getByRole("alert")).toContainText("Complete the Cloudflare security check before submitting.");
+  const response = await page.request.post("/api/leads", { data: {
+    kind: "demo", name: "Abuto E2E Lead", organization: "E2E Pharmacy", email: "e2e-abuto@example.com",
+    phone: "+254700000000", town: "", branches: "", preferredDate: nextDate.toISOString().slice(0, 10),
+    preferredTime: "10:00", preferredContact: "Email", message: "", website: "", turnstileToken: "",
+  } });
+  expect(response.status()).toBe(403);
+  await expect(response.json()).resolves.toMatchObject({ error: "Complete the security check and try again." });
+  await expect(page.getByRole("heading", { name: "Demo request received." })).toHaveCount(0);
 });
 
 test("AskanPharma inquiry CTA opens WhatsApp with product context", async ({ page }) => {
   await page.goto("/products/askanpharma");
+  await expect(page.getByRole("link", { name: "Request a Demo" })).toHaveAttribute("href", "/products/askanpharma/demo");
   const link = page.getByRole("link", { name: "Ask about AskanPharma on WhatsApp" });
   const url = new URL(await link.getAttribute("href"));
   expect(url.origin + url.pathname).toBe("https://wa.me/254113245740");

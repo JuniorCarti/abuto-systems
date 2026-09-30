@@ -9,7 +9,7 @@ export default defineConfig({
   use: {
     ...devices["Desktop Chrome"],
     channel: "msedge",
-    baseURL: previewBaseURL ?? "http://127.0.0.1:3002",
+    baseURL: previewBaseURL ?? "http://localhost:3002",
     trace: "retain-on-failure",
   },
   webServer: previewBaseURL
@@ -19,5 +19,9 @@ export default defineConfig({
         url: "http://127.0.0.1:3002",
         reuseExistingServer: !process.env.CI,
         timeout: 60_000,
+        env: {
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: "1x00000000000000000000AA",
+          TURNSTILE_SECRET_KEY: "1x0000000000000000000000000000000AA",
+        },
       },
 });

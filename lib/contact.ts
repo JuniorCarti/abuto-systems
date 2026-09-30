@@ -1,14 +1,6 @@
-export const contactDetails = {
-  primaryWhatsApp: {
-    display: "+254 113 245 740",
-    number: "254113245740",
-  },
-  secondaryWhatsApp: {
-    display: "+254 101 291 262",
-    number: "254101291262",
-  },
-  email: "abutosystems@gmail.com",
-} as const;
+import { company } from "@/data/company";
+
+export const contactDetails = company.contact;
 
 export const whatsappMessages = {
   general: "Hello Abuto Systems,\n\nI'm interested in your software and digital solutions and would like to discuss a project with your team.\n\nPlease let me know how we can get started.\n\nThank you.",

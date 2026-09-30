@@ -36,6 +36,16 @@ npx wrangler deploy --dry-run
 
 `npm run cf:preview` builds the app and starts Wrangler at `http://127.0.0.1:8787` (or use `--port 3002` for the Playwright suite). It is a local Worker runtime check, not a substitute for a deployed Cloudflare preview. Do not include `dist`, `.wrangler`, `.vite`, `.vinext`, test output, or credentials in Git.
 
+## Virtual operations and lead forms
+
+The feature release adds Nairobi service hours, a virtual consultation enquiry, the `/products/askanpharma/demo` route, and a Worker `POST /api/leads` handler. No form database, Turnstile keys, or outbound email provider existed in the prior deployment. The handler validates on the server, verifies Turnstile, and only confirms receipt after D1 storage succeeds. Without the production binding and keys, it fails closed and the browser disables submission.
+
+The D1 migration is `migrations/0001_create_leads.sql`. The dedicated `abuto-systems-leads` database is bound as `LEADS_DB` in the existing `wrangler.jsonc`, and the reviewed migration has been applied to the empty production database. The same migration can be applied locally with `npx wrangler d1 migrations apply abuto-systems-leads --local`. The production Turnstile widget is restricted to `abutosystems.com`; its secret is stored as `TURNSTILE_SECRET_KEY` on the existing Worker, and its public `NEXT_PUBLIC_TURNSTILE_SITE_KEY` is stored in ignored `.env.local` for production builds. Do not commit either key or a placeholder database ID. This uses Cloudflare D1, which has a free Workers plan tier; if account usage requires a paid plan, stop and get billing approval before upgrading.
+
+Accepted leads are stored in D1 for manual follow-up. No email notification is configured and the UI makes no email-delivery claim. Operators can review requests in the D1 console or run a narrowly scoped query that omits message contents. Treat query output as private contact data. The submitted fields and retention/deletion instructions are documented in the repository README.
+
+The current local environment has not confirmed an active Cloudflare session. Before deploying this release, inspect account identity, create and bind the D1 database, apply the migration, configure Turnstile, and run a pre-production request through the real binding. Do not deploy while the form remains unavailable.
+
 ## Validation record
 
 Validated from the repository using Node.js 24.14.0, npm 11.9.0, and Wrangler 4.144.0:

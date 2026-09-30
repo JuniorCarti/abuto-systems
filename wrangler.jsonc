@@ -12,5 +12,13 @@
     "directory": "dist/client",
     "not_found_handling": "none",
     "binding": "ASSETS"
-  }
+  },
+  "d1_databases": [
+    {
+      "binding": "LEADS_DB",
+      "database_name": "abuto-systems-leads",
+      "database_id": "52e32b35-ec46-4cd8-b701-f289f560c22f",
+      "migrations_dir": "migrations"
+    }
+  ]
 }

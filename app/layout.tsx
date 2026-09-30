@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { siteUrl } from "@/lib/site";
+import { company } from "@/data/company";
 import "./globals.css";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
@@ -18,6 +19,6 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const organization = { "@context": "https://schema.org", "@type": "Organization", name: "Abuto Systems", email: "abutosystems@gmail.com", url: siteUrl };
+  const organization = { "@context": "https://schema.org", "@type": "Organization", name: company.name, email: company.contact.email, url: siteUrl };
   return <html lang="en" className={geist.variable}><body><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organization).replace(/</g, "\\u003c") }} /><a className="skip-link" href="#main">Skip to content</a><Header />{children}<Footer /></body></html>;
 }

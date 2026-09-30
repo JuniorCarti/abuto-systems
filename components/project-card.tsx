@@ -50,6 +50,7 @@ export function ProjectCard({ project }: { project: PortfolioProject }) {
           ) : (
             <Link href={href}>{linkContent}</Link>
           )}
+          {project.slug === "askanpharma" && <Link className="project-demo-link" href="/products/askanpharma/demo">Request a Demo <span aria-hidden="true">↗</span></Link>}
         </div>
       </div>
     </article>

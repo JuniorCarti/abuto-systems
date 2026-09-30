@@ -1,0 +1,3 @@
+# Cloudflare's public dummy credential for local automated tests only.
+# Never use this credential for a production Worker.
+TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA

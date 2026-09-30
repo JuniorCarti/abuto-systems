@@ -9,7 +9,7 @@
     "cf:preview": "npm run build && wrangler dev --ip 127.0.0.1",
     "lint": "eslint app components data lib tests e2e proxy.ts next.config.ts eslint.config.mjs playwright.config.mjs vite.config.ts",
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
-    "test": "npm run build && node --test tests/site.test.mjs",
+    "test": "npm run build && node --experimental-strip-types --test tests/site.test.mjs tests/business-hours.test.mjs",
     "test:e2e": "playwright test",
     "deploy": "vinext-cloudflare deploy"
   },
