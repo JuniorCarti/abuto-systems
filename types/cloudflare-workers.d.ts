@@ -9,8 +9,17 @@ declare module "cloudflare:workers" {
   interface D1Database {
     prepare(query: string): D1PreparedStatement;
   }
+  interface SendEmail {
+    send(message: {
+      to: string;
+      from: string;
+      subject: string;
+      text: string;
+    }): Promise<unknown>;
+  }
   export const env: {
     LEADS_DB?: D1Database;
     TURNSTILE_SECRET_KEY?: string;
+    LEAD_NOTIFICATION_EMAIL?: SendEmail;
   };
 }

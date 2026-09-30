@@ -2,7 +2,13 @@
 
 ## Current status
 
-The production site is live at `https://abutosystems.com`. `www.abutosystems.com` redirects permanently to the apex. The current Worker version is `827ddf31-e945-4b2d-a7df-3c0d84222ded`, deployed 2026-09-30 at 02:10:33 UTC from the source committed as `d619041353ede87a6eacb26813610efc0c604cf6` (`feat(deploy): release Abuto Systems production website`). The same committed source passed the final production checks after deployment.
+### Prompt 9 lead notification work
+
+The current source adds a best-effort Cloudflare `send_email` notification after a lead insert succeeds in D1. The binding is restricted to `abutosystems@gmail.com` and `notifications@abutosystems.com`; message subjects and sender/recipient are server-controlled, and the body is plain text. General enquiries, virtual consultation enquiries, and AskanPharma demo requests have separate subjects/content. If email sending fails, the accepted D1 lead remains stored and the visitor still receives the normal receipt response. This source change has not been deployed.
+
+Cloudflare lists `abutosystems@gmail.com` as verified (2026-09-30). The `abutosystems.com` Email Routing settings currently report disabled/unconfigured. Email Sending settings and DNS API requests return Cloudflare error 2036 (Unauthorized), so sender-domain onboarding and its proposed DNS records have not been applied. Before production deployment, an account administrator must confirm Email Sending is available and review the exact onboarding records in Cloudflare. Stop if Cloudflare requires a paid plan or proposes changes that affect existing mail/DNS. The current production Worker remains on its prior release until this gate is cleared.
+
+The production site is live at `https://abutosystems.com`. `www.abutosystems.com` redirects permanently to the apex. The current Worker version is `70fcd848-9513-4f60-8f57-e84a2f157f41`, created 2026-09-30 at 18:22:35 UTC. The current Git branch began Prompt 9 at `92986075a3e743d33d484b4b56f9f3147b1bf530`; Prompt 9 source is not deployed until the sender-domain gate is cleared.
 
 The Cloudflare Dashboard was manually inspected before binding and reported **0 of 200 available DNS records** and “No DNS records.” Before-state: no visible A, AAAA, CNAME, MX, TXT, or CAA records; no visible apex, `www`, or wildcard record. Cloudflare-managed Worker Custom Domains are now attached for the apex (domain ID `f0afd017b926e8514b0e881994d972e0eaa3d127`, certificate ID `faa894ff-ef42-45f4-98e0-33a1f829027f`) and `www` (domain ID `6e325626b57389cf36744e0c9bb42d439eca9de4`, certificate ID `9832968b-f940-481e-a9d9-3e8c13ab7332`). DNSSEC remains unverified and was not changed. The Wrangler OAuth login still lacks DNS Read, so the post-binding DNS records could not be enumerated through the API.
 
@@ -42,9 +48,9 @@ The feature release adds Nairobi service hours, a virtual consultation enquiry, 
 
 The D1 migration is `migrations/0001_create_leads.sql`. The dedicated `abuto-systems-leads` database is bound as `LEADS_DB` in the existing `wrangler.jsonc`, and the reviewed migration has been applied to the empty production database. The same migration can be applied locally with `npx wrangler d1 migrations apply abuto-systems-leads --local`. The production Turnstile widget is restricted to `abutosystems.com`; its secret is stored as `TURNSTILE_SECRET_KEY` on the existing Worker, and its public `NEXT_PUBLIC_TURNSTILE_SITE_KEY` is stored in ignored `.env.local` for production builds. Do not commit either key or a placeholder database ID. This uses Cloudflare D1, which has a free Workers plan tier; if account usage requires a paid plan, stop and get billing approval before upgrading.
 
-Accepted leads are stored in D1 for manual follow-up. No email notification is configured and the UI makes no email-delivery claim. Operators can review requests in the D1 console or run a narrowly scoped query that omits message contents. Treat query output as private contact data. The submitted fields and retention/deletion instructions are documented in the repository README.
+Accepted leads are stored in D1 for manual follow-up. Operators can review requests in the D1 console or run a narrowly scoped query that omits message contents. Treat query output as private contact data. The submitted fields and retention/deletion instructions are documented in the repository README.
 
-The current local environment has not confirmed an active Cloudflare session. Before deploying this release, inspect account identity, create and bind the D1 database, apply the migration, configure Turnstile, and run a pre-production request through the real binding. Do not deploy while the form remains unavailable.
+The current account session is authenticated and the existing production D1 and Turnstile bindings are configured. The active production D1 database is `abuto-systems-leads`; no migration is needed for the notification change. Keep the existing Turnstile validation and D1 storage path intact.
 
 ## Validation record
 

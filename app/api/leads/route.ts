@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { validateLead, type LeadPayload } from "@/lib/lead-validation";
+import { storeLeadAndNotify } from "@/lib/lead-notification";
 
 const maxBodyBytes = 12_000;
 
@@ -65,18 +66,8 @@ export async function POST(request: Request) {
   if (!env.LEADS_DB) return json({ error: "Form submissions are temporarily unavailable. Please use the direct contact options." }, 503);
 
   try {
-    const lead = validation.lead;
-    const result = await env.LEADS_DB.prepare(`
-      INSERT INTO leads (
-        id, kind, name, organization, email, phone, town, interest,
-        preferred_date, preferred_time, branches, preferred_contact, message, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      crypto.randomUUID(), lead.kind, lead.name, lead.organization, lead.email, lead.phone,
-      lead.town, lead.interest, lead.preferredDate || null, lead.preferredTime || null,
-      lead.branches, lead.preferredContact, lead.message, new Date().toISOString(),
-    ).run();
-    if (!result.success) return json({ error: "We could not save your request. Please try again or contact us directly." }, 503);
+    const stored = await storeLeadAndNotify(env.LEADS_DB, env.LEAD_NOTIFICATION_EMAIL, validation.lead);
+    if (!stored) return json({ error: "We could not save your request. Please try again or contact us directly." }, 503);
   } catch {
     return json({ error: "We could not save your request. Please try again or contact us directly." }, 503);
   }
