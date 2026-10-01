@@ -37,6 +37,13 @@ test("creates a minimal general enquiry without empty fields", () => {
   assert.doesNotMatch(message.text, /Business \/ Organization:|Phone:|Town \/ Location:/);
 });
 
+test("trial notification is clearly identified and does not claim the trial started", () => {
+  const message = buildLeadNotification({ ...baseLead, interest: "AskanPharma trial request", message: "21-day AskanPharma trial setup request." });
+  assert.equal(message.subject, "New AskanPharma Trial Request");
+  assert.match(message.text, /21-day AskanPharma trial setup request/);
+  assert.match(message.text, /trial has not started automatically/);
+});
+
 test("demo notice includes requested schedule, EAT timezone, and no-confirmation wording", () => {
   const message = buildLeadNotification({ ...baseLead, kind: "demo", interest: "", preferredDate: "2026-10-14", preferredTime: "10:30", branches: 2 });
   assert.equal(message.subject, "New AskanPharma Demo Request");

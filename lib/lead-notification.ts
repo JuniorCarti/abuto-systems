@@ -29,8 +29,10 @@ function field(label: string, value: string | number | null | undefined) {
 
 export function buildLeadNotification(lead: StoredLead, bookingConfirmed = false) {
   const isDemo = lead.kind === "demo";
+  const isTrial = lead.kind === "inquiry" && lead.interest === "AskanPharma trial request";
   const subject = isDemo ? bookingConfirmed ? "AskanPharma Demo Confirmed" : "New AskanPharma Demo Request" :
-    lead.interest === "Virtual Consultation" ? "New Virtual Consultation Request" : "New General Enquiry";
+    isTrial ? "New AskanPharma Trial Request" :
+      lead.interest === "Virtual Consultation" ? "New Virtual Consultation Request" : "New General Enquiry";
   const lines = [
     subject,
     "",
@@ -56,6 +58,7 @@ export function buildLeadNotification(lead: StoredLead, bookingConfirmed = false
       ? "The AskanPharma demo has been confirmed in Google Calendar."
       : "The preferred demo date and time are a request and have not yet been confirmed.");
   }
+  if (isTrial) lines.push("", "This is a request for help setting up a 21-day AskanPharma trial. The trial has not started automatically.");
 
   return { to: leadNotificationDestination, from: leadNotificationSender, subject, text: lines.join("\n") };
 }

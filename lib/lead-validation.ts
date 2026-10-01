@@ -32,22 +32,23 @@ function value(payload: LeadPayload, key: string, max: number, required = false)
 
 export function validateLead(payload: LeadPayload, now = new Date()): LeadValidation {
   const errors: Record<string, string> = {};
-  const kind = payload.kind === "demo" ? "demo" : payload.kind === "inquiry" ? "inquiry" : null;
+  const isTrial = payload.kind === "trial";
+  const kind = payload.kind === "demo" ? "demo" : payload.kind === "inquiry" || isTrial ? "inquiry" : null;
   if (!kind) errors.kind = "Unsupported request type.";
 
   const name = value(payload, "name", 120, true);
-  const organization = value(payload, "organization", 160, kind === "demo");
+  const organization = value(payload, "organization", 160, kind === "demo" || isTrial);
   const email = value(payload, "email", 254, true);
   const phone = value(payload, "phone", 40, kind === "demo");
   const town = value(payload, "town", 120);
-  const interest = value(payload, "interest", 40);
+  const interest = isTrial ? { value: "AskanPharma trial request" } : value(payload, "interest", 40);
   const preferredContact = value(payload, "preferredContact", 20);
-  const message = value(payload, "message", 2000, kind === "inquiry");
+  const message = value(payload, "message", 2000, kind === "inquiry" && !isTrial);
   for (const [key, result] of Object.entries({ name, organization, email, phone, town, interest, preferredContact, message })) {
     if (result.error) errors[key] = result.error;
   }
   if (!errors.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) errors.email = "Enter a valid email address.";
-  if (!errors.interest && interest.value && !interests.has(interest.value)) errors.interest = "Choose a supported enquiry type.";
+  if (!isTrial && !errors.interest && interest.value && !interests.has(interest.value)) errors.interest = "Choose a supported enquiry type.";
   if (!errors.preferredContact && preferredContact.value && !contactMethods.has(preferredContact.value)) errors.preferredContact = "Choose Email, Phone, or WhatsApp.";
 
   const preferredDate = kind === "demo" ? value(payload, "preferredDate", 10, true) : { value: "" };
@@ -80,6 +81,6 @@ export function validateLead(payload: LeadPayload, now = new Date()): LeadValida
     preferredTime: preferredTime.value,
     branches,
     preferredContact: preferredContact.value,
-    message: message.value,
+    message: message.value || (isTrial ? "21-day AskanPharma trial setup request." : ""),
   } };
 }

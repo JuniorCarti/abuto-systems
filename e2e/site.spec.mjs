@@ -6,6 +6,7 @@ const routes = [
   ["/solutions", "Technology for"],
   ["/products", "Products & Projects"],
   ["/products/askanpharma", "Askan"],
+  ["/products/askanpharma/pricing", "AskanPharma pricing"],
   ["/products/askanpharma/demo", "Request an"],
   ["/about", "Practical software"],
   ["/contact", "Let’s build"],
@@ -52,7 +53,9 @@ test("preview pages return production canonicals, security headers, and a real 4
   expect(await robots.text()).toContain("https://abutosystems.com/sitemap.xml");
   const sitemap = await request.get("/sitemap.xml");
   expect(sitemap.status()).toBe(200);
-  expect(await sitemap.text()).toContain("https://abutosystems.com/products/askanpharma");
+  const sitemapXml = await sitemap.text();
+  expect(sitemapXml).toContain("https://abutosystems.com/products/askanpharma");
+  expect(sitemapXml).toContain("https://abutosystems.com/products/askanpharma/pricing");
   for (const asset of ["/brand/abuto-symbol.png", "/brand/abuto-logo-full.png", "/brand/abuto-social.jpg", "/icon.png", "/projects/lineage-card.webp", "/projects/zaogrid-abuto-brand.webp", "/projects/tari-card.webp", "/projects/gasflow-card.webp"]) {
     const response = await request.get(asset);
     expect(response.status(), `${asset} status`).toBe(200);
@@ -466,6 +469,7 @@ test("demo availability and booking reject missing Turnstile tokens", async ({ p
 test("AskanPharma inquiry CTA opens WhatsApp with product context", async ({ page }) => {
   await page.goto("/products/askanpharma");
   await expect(page.getByRole("link", { name: "Request a Demo" })).toHaveAttribute("href", "/products/askanpharma/demo");
+  await expect(page.getByRole("link", { name: "View pricing & free trial" })).toHaveAttribute("href", "/products/askanpharma/pricing");
   const link = page.getByRole("link", { name: "Ask about AskanPharma on WhatsApp" });
   const url = new URL(await link.getAttribute("href"));
   expect(url.origin + url.pathname).toBe("https://wa.me/254113245740");
@@ -473,7 +477,65 @@ test("AskanPharma inquiry CTA opens WhatsApp with product context", async ({ pag
   await expect(link).toHaveAttribute("rel", "noopener noreferrer");
 });
 
+test("AskanPharma pricing calculator matches approved totals and fits mobile widths", async ({ page }) => {
+  await page.goto("/products/askanpharma/pricing");
+  await expect(page).toHaveTitle("AskanPharma Pricing | Abuto Systems");
+  await expect(page.getByRole("heading", { name: /AskanPharma pricing.*Made simple/i })).toBeVisible();
+  await expect(page.getByText("Try AskanPharma free for 21 days, then choose monthly or annual billing.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: /KES 1,500\/month/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /KES 15,000\/year/ })).toBeVisible();
+  await expect(page.getByRole("table", { name: /subscription totals by device count/i }).getByRole("row")).toHaveCount(6);
+
+  const calculator = page.getByRole("region", { name: "See your total" });
+  const count = page.getByRole("spinbutton", { name: "Number of devices" });
+  await count.fill("3");
+  await expect(calculator.locator(".pricing-result").nth(0)).toContainText("KES 2,500");
+  await expect(calculator.locator(".pricing-result").nth(1)).toContainText("KES 25,000");
+  await expect(calculator.locator(".pricing-result-onboarding")).toContainText("FREE");
+  await count.fill("5");
+  await expect(calculator.locator(".pricing-result-onboarding")).toContainText("KES 1,000 one-time");
+  await count.fill("0");
+  await expect(count).toHaveAttribute("aria-invalid", "true");
+  await expect(page.getByRole("status").filter({ hasText: /Enter a whole number from 1 to 100/ })).toBeVisible();
+
+  for (const width of [320, 375, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    const size = await page.evaluate(() => ({ viewport: innerWidth, document: document.documentElement.scrollWidth }));
+    expect(size.document, `horizontal overflow at ${width}px`).toBeLessThanOrEqual(size.viewport);
+  }
+});
+
+test("trial CTA submits a Turnstile-protected request for manual setup through the existing lead intake", async ({ page }) => {
+  await page.addInitScript(() => {
+    let issueToken;
+    window.turnstile = {
+      render(_target, options) { issueToken = () => options.callback("e2e-trial-turnstile-token"); setTimeout(issueToken, 0); return "e2e-trial-widget"; },
+      reset() { setTimeout(() => issueToken?.(), 0); },
+      remove() {},
+    };
+  });
+  let submittedPayload;
+  await page.route("**/api/leads", async route => {
+    submittedPayload = route.request().postDataJSON();
+    await route.fulfill({ status: 201, json: { received: true, message: "Trial request received. We’ll contact you to help set up your 21-day AskanPharma trial." } });
+  });
+  await page.goto("/products/askanpharma/pricing");
+  await page.getByRole("link", { name: "Start 21-Day Free Trial" }).click();
+  await expect(page).toHaveURL(/#trial-request$/);
+  await page.locator("#trial-request-form input[name=name]").fill("E2E Pharmacy Owner");
+  await page.locator("#trial-request-form input[name=organization]").fill("E2E Pharmacy");
+  await page.locator("#trial-request-form input[name=email]").fill("e2e-trial@example.com");
+  await page.getByRole("button", { name: "Request Trial Setup" }).click();
+  await expect(page.getByRole("heading", { name: "Trial request received." })).toBeVisible();
+  await expect(page.getByText(/does not automatically start a trial/)).toBeVisible();
+  expect(submittedPayload.kind).toBe("trial");
+  expect(submittedPayload.interest).toBe("AskanPharma trial request");
+  expect(submittedPayload.turnstileToken).toBe("e2e-trial-turnstile-token");
+  await expect(page.locator("#trial-request-form")).toBeVisible();
+});
+
 test("key pages meet WCAG 2.2 A and AA automated checks", async ({ page }) => {
+  test.setTimeout(60_000);
   for (const [path] of routes) {
     await page.goto(path);
     await page.addScriptTag({ content: axe.source });

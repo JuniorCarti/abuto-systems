@@ -51,7 +51,10 @@ export async function POST(request: Request) {
     return json({ error: "We could not save your request. Please try again or contact us directly." }, 503);
   }
 
-  return json({ received: true, message: "Request received. We’ll contact you to confirm the next steps; this is not a booked appointment." }, 201);
+  const message = validation.lead.interest === "AskanPharma trial request"
+    ? "Trial request received. We’ll contact you to help set up your 21-day AskanPharma trial."
+    : "Request received. We’ll contact you to confirm the next steps; this is not a booked appointment.";
+  return json({ received: true, message }, 201);
 }
 
 export async function GET() {

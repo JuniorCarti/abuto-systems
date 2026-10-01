@@ -28,6 +28,7 @@ test("production routes render through Wrangler's local Worker runtime", async (
       ["/solutions", "Technology for", "Custom Software"],
       ["/products", "Products", "TARI-UBC"],
       ["/products/askanpharma", "Askan", "A PRODUCT BY ABUTO SYSTEMS"],
+      ["/products/askanpharma/pricing", "AskanPharma pricing", "21-Day Free Trial"],
       ["/products/askanpharma/demo", "Request an", "VIRTUAL PRODUCT WALKTHROUGH"],
       ["/about", "Practical software", "Ridge Junior Abuto"],
       ["/contact", "something useful", "Send Enquiry"],
@@ -75,6 +76,7 @@ test("production routes render through Wrangler's local Worker runtime", async (
     const sitemapXml = await sitemap.text();
     assert.match(sitemapXml, /https:\/\/abutosystems\.com\/products\/askanpharma/);
     assert.match(sitemapXml, /https:\/\/abutosystems\.com\/products\/askanpharma\/demo/);
+    assert.match(sitemapXml, /https:\/\/abutosystems\.com\/products\/askanpharma\/pricing/);
     for (const path of ["/privacy", "/terms", "/cookies"]) assert.ok(sitemapXml.includes(`https://abutosystems.com${path}`), `${path} sitemap URL`);
     const unsupportedFormMethod = await fetch(`${base}/api/leads`);
     assert.equal(unsupportedFormMethod.status, 405);

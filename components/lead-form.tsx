@@ -5,7 +5,7 @@ import { TurnstileWidget } from "@/components/turnstile-widget";
 import { getNairobiDate } from "@/lib/business-hours";
 import type { DemoSlot } from "@/lib/demo-scheduling";
 
-type LeadFormKind = "inquiry" | "demo";
+type LeadFormKind = "inquiry" | "demo" | "trial";
 type Success = {
   state: "received" | "confirmed";
   message: string;
@@ -33,6 +33,7 @@ export function LeadForm({ kind }: { kind: LeadFormKind }) {
   const [idempotencyKey, setIdempotencyKey] = useState("");
   const availabilityRequest = useRef("");
   const isDemo = kind === "demo";
+  const isTrial = kind === "trial";
   const turnstileConfigured = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
   const selectedWeekday = preferredDate ? new Date(`${preferredDate}T00:00:00.000Z`).getUTCDay() : null;
 
@@ -161,10 +162,10 @@ export function LeadForm({ kind }: { kind: LeadFormKind }) {
   }
 
   return (
-    <form id={isDemo ? "demo-request-form" : "enquiry-form"} className="contact-form lead-form" onChange={() => { setError(""); setFieldErrors({}); if (isDemo && !pending) setIdempotencyKey(""); }} onSubmit={submit}>
+    <form id={isDemo ? "demo-request-form" : isTrial ? "trial-request-form" : "enquiry-form"} className={`contact-form lead-form${isTrial ? " trial-lead-form" : ""}`} onChange={() => { setError(""); setFieldErrors({}); if (isDemo && !pending) setIdempotencyKey(""); }} onSubmit={submit}>
       <div className="form-grid">
         <label>Full name <span aria-hidden="true">*</span><input name="name" autoComplete="name" required maxLength={120} placeholder="Your name" /></label>
-        <label>{isDemo ? "Pharmacy / Business name" : "Business / Organization"}{isDemo && <> <span aria-hidden="true">*</span></>}<input name="organization" autoComplete="organization" required={isDemo} maxLength={160} placeholder={isDemo ? "Pharmacy or business" : "Organization name (optional)"} /></label>
+        <label>{isDemo || isTrial ? "Pharmacy / Business name" : "Business / Organization"}{(isDemo || isTrial) && <> <span aria-hidden="true">*</span></>}<input name="organization" autoComplete="organization" required={isDemo || isTrial} maxLength={160} placeholder={isDemo || isTrial ? "Pharmacy or business" : "Organization name (optional)"} /></label>
         <label>Email address <span aria-hidden="true">*</span><input name="email" type="email" autoComplete="email" required maxLength={254} placeholder="you@example.com" /></label>
         <label>Phone number{isDemo && <> <span aria-hidden="true">*</span></>} {!isDemo && <small>(optional)</small>}<input name="phone" type="tel" autoComplete="tel" required={isDemo} maxLength={40} placeholder="+254..." /></label>
       </div>
@@ -181,6 +182,13 @@ export function LeadForm({ kind }: { kind: LeadFormKind }) {
         {availabilityState === "error" && <div className="form-error" role="alert"><p>{availabilityError || "We couldn't check demo availability right now. Please try again shortly."}</p>{selectedWeekday !== 0 && <button className="button button-outline" type="button" disabled={!token} onClick={() => { setAvailabilityDate(""); setAvailabilityState("idle"); }}>{token ? "Retry availability" : "Complete the security check to retry"}</button>}</div>}
         <label>Preferred contact method <select name="preferredContact" defaultValue="Email"><option>Email</option><option>Phone</option><option>WhatsApp</option></select></label>
         <label>What would you like to see? <textarea name="message" rows={4} maxLength={2000} placeholder="Share the pharmacy workflow or product area you would like us to cover. Do not include patient, medical, password, or payment information." /></label>
+      </> : isTrial ? <>
+        <div className="form-grid">
+          <label>Town / Location <small>(optional)</small><input name="town" autoComplete="address-level2" maxLength={120} /></label>
+          <label>Phone number <small>(optional)</small><input name="phone" type="tel" autoComplete="tel" maxLength={40} placeholder="+254..." /></label>
+        </div>
+        <input type="hidden" name="interest" value="AskanPharma trial request" />
+        <label>Anything we should know about your setup? <small>(optional)</small><textarea name="message" rows={4} maxLength={2000} placeholder="For example, how many devices you expect to use. Please do not include patient, medical, password, or payment information." /></label>
       </> : <>
         <label>Enquiry type <select name="interest" defaultValue="General Enquiry"><option>General Enquiry</option><option>Virtual Consultation</option><option>Custom Software</option><option>Business Systems</option><option>Mobile Applications</option><option>Web Applications</option><option>Enterprise Systems</option><option>Technology Solutions</option><option>AskanPharma</option><option>Something else</option></select></label>
         <label>Message <span aria-hidden="true">*</span><textarea name="message" rows={6} required minLength={10} maxLength={2000} placeholder="Tell us what you are working on and how we can help." /></label>
@@ -188,9 +196,9 @@ export function LeadForm({ kind }: { kind: LeadFormKind }) {
       <label className="lead-trap" aria-hidden="true">Leave this field empty<input name="website" tabIndex={-1} autoComplete="off" /></label>
       {turnstileConfigured ? <div className="lead-verification"><TurnstileWidget onToken={setToken} resetCount={resetCount} /><p>We use Cloudflare Turnstile to help prevent automated submissions.</p></div> : <p className="form-error" role="status">Secure form verification is not configured here yet. Please contact us directly using the options on this page.</p>}
       {error && <div className="form-error" role="alert"><p>{error}</p>{Object.keys(fieldErrors).length > 0 && <ul>{Object.entries(fieldErrors).map(([field, message]) => <li key={field}>{field}: {message}</li>)}</ul>}</div>}
-      {success && <div className="lead-success" role="status" aria-live="polite"><h2>{isDemo ? success.state === "confirmed" ? "Demo confirmed." : "Request received." : "Enquiry received."}</h2><p>{success.message}</p>{isDemo && success.state === "confirmed" && <><p>{success.date}<br />{success.startTime}–{success.endTime} EAT<br />Duration: 30 minutes<br />Platform: Google Meet</p>{success.meetUrl && <p><a href={success.meetUrl} target="_blank" rel="noopener noreferrer">Join Google Meet</a></p>}{success.calendarInvitationRequested && <p>You’ll also receive a Google Calendar invitation.</p>}{success.confirmationEmailSent && <p>A confirmation email has been sent to the address you provided.</p>}</>}{isDemo && success.state === "received" && <><p>Your preferred date and time are a request only. Abuto Systems will contact you to confirm availability.</p><button className="button button-outline" type="button" disabled={!token || pending} onClick={event => { setSuccess(null); event.currentTarget.form?.requestSubmit(); }}>{token ? "Try scheduling again" : "Complete the security check to retry"}</button></>}</div>}
-      <button className="button button-green form-button" type="submit" disabled={pending || (isDemo && availabilityState === "checking") || !turnstileConfigured}>{pending ? "Sending request…" : isDemo ? "Request a Demo" : "Send Enquiry"}<span aria-hidden="true">↗</span></button>
-      <p className="form-disclaimer">{isDemo ? <>Only the confirmed state above books an appointment. Please do not submit patient, prescription, medical, password, or payment information. See our <a href="/privacy">Privacy Policy</a>.</> : <>We use the details you provide to respond to your enquiry. Please do not include sensitive information. See our <a href="/privacy">Privacy Policy</a>. For an immediate response, use the direct contact options on this page.</>}</p>
+      {success && <div className="lead-success" role="status" aria-live="polite"><h2>{isDemo ? success.state === "confirmed" ? "Demo confirmed." : "Request received." : isTrial ? "Trial request received." : "Enquiry received."}</h2><p>{success.message}</p>{isDemo && success.state === "confirmed" && <><p>{success.date}<br />{success.startTime}–{success.endTime} EAT<br />Duration: 30 minutes<br />Platform: Google Meet</p>{success.meetUrl && <p><a href={success.meetUrl} target="_blank" rel="noopener noreferrer">Join Google Meet</a></p>}{success.calendarInvitationRequested && <p>You’ll also receive a Google Calendar invitation.</p>}{success.confirmationEmailSent && <p>A confirmation email has been sent to the address you provided.</p>}</>}{isDemo && success.state === "received" && <><p>Your preferred date and time are a request only. Abuto Systems will contact you to confirm availability.</p><button className="button button-outline" type="button" disabled={!token || pending} onClick={event => { setSuccess(null); event.currentTarget.form?.requestSubmit(); }}>{token ? "Try scheduling again" : "Complete the security check to retry"}</button></>}</div>}
+      <button className="button button-green form-button" type="submit" disabled={pending || (isDemo && availabilityState === "checking") || !turnstileConfigured}>{pending ? "Sending request…" : isDemo ? "Request a Demo" : isTrial ? "Request Trial Setup" : "Send Enquiry"}<span aria-hidden="true">↗</span></button>
+      <p className="form-disclaimer">{isDemo ? <>Only the confirmed state above books an appointment. Please do not submit patient, prescription, medical, password, or payment information. See our <a href="/privacy">Privacy Policy</a>.</> : isTrial ? <>We’ll use these details to respond and help arrange your trial setup. Submitting this request does not automatically start a trial. Please do not include patient, medical, password, or payment information. See our <a href="/privacy">Privacy Policy</a>.</> : <>We use the details you provide to respond to your enquiry. Please do not include sensitive information. See our <a href="/privacy">Privacy Policy</a>. For an immediate response, use the direct contact options on this page.</>}</p>
     </form>
   );
 }

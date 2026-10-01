@@ -20,7 +20,7 @@ export default function AskanPharmaPage() {
             <h1>Askan<span>Pharma</span><i>.</i></h1>
             <p className="askan-subtitle">Pharmacy Management System</p>
             <p className="askan-intro">Practical software for pharmacy operations.</p>
-            <div className="askan-actions"><Link className="button button-green" href="/products/askanpharma/demo">Request a Demo <span aria-hidden="true">↗</span></Link><a className="text-link" href={buildWhatsAppUrl(contactDetails.primaryWhatsApp.number, whatsappMessages.askanPharma)} target="_blank" rel="noopener noreferrer">Ask about AskanPharma on WhatsApp <span aria-hidden="true">↗</span></a></div>
+            <div className="askan-actions"><Link className="button button-green" href="/products/askanpharma/pricing">View pricing &amp; free trial <span aria-hidden="true">↗</span></Link><Link className="button button-outline" href="/products/askanpharma/demo">Request a Demo <span aria-hidden="true">↗</span></Link><a className="text-link" href={buildWhatsAppUrl(contactDetails.primaryWhatsApp.number, whatsappMessages.askanPharma)} target="_blank" rel="noopener noreferrer">Ask about AskanPharma on WhatsApp <span aria-hidden="true">↗</span></a></div>
           </div>
           <div className="askan-visual" aria-hidden="true">
             <div className="askan-circle" />
