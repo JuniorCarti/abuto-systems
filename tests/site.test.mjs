@@ -31,9 +31,9 @@ test("production routes render through Wrangler's local Worker runtime", async (
       ["/products/askanpharma/demo", "Request an", "VIRTUAL PRODUCT WALKTHROUGH"],
       ["/about", "Practical software", "Ridge Junior Abuto"],
       ["/contact", "something useful", "Send Enquiry"],
-      ["/privacy", "Privacy Policy", "Data Protection Act, 2019"],
+      ["/privacy", "Privacy Policy", "Western Europe"],
       ["/terms", "Terms of Service", "does not by itself create a customer relationship"],
-      ["/cookies", "Cookie Policy", "Cloudflare Turnstile"],
+      ["/cookies", "Cookie Policy", "Pre-clearance is off"],
     ];
     for (const [path, heading, content] of routes) {
       const response = await fetch(`${base}${path}`);

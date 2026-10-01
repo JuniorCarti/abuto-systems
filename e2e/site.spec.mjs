@@ -256,6 +256,15 @@ test("legal pages have canonical metadata, footer links, and responsive readable
     await expect(page.locator("main h1")).toHaveText(heading);
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", `https://abutosystems.com${path}`);
     await expect(page.getByRole("navigation", { name: "On this page" })).toBeVisible();
+    if (path === "/privacy") {
+      await expect(page.locator("main")).toContainText("technology brand");
+      await expect(page.locator("main")).toContainText("Western Europe");
+      await expect(page.locator("main")).toContainText("United States");
+      await expect(page.locator("main")).toContainText("adequacy decision, necessity, or consent");
+    }
+    if (path === "/terms") await expect(page.locator("main")).toContainText("technology brand");
+    if (path === "/cookies") await expect(page.locator("main")).toContainText("Pre-clearance is off");
+    await expect(page.locator("main")).not.toContainText(/RESEND_API_KEY|TURNSTILE_SECRET_KEY/);
     const footerLinks = page.getByRole("contentinfo").getByRole("navigation", { name: "Legal" });
     for (const [label, href] of [["Privacy", "/privacy"], ["Terms", "/terms"], ["Cookies", "/cookies"]]) {
       await expect(footerLinks.getByRole("link", { name: label })).toHaveAttribute("href", href);
