@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildLeadNotification, leadNotificationDestination, leadNotificationSender, sendLeadNotification, storeLeadAndNotify } from "../lib/lead-notification.ts";
+import { buildLeadNotification, leadNotificationDestination, leadNotificationFrom, leadNotificationSender, sendLeadNotification, storeLeadAndNotify } from "../lib/lead-notification.ts";
 
 const baseLead = {
   id: "qa-reference-123",
@@ -52,19 +52,36 @@ test("keeps user content in plain text and strips control characters", () => {
   assert.equal("html" in message, false);
 });
 
-test("sends only the constructed fixed-recipient message", async () => {
-  let sent;
-  await sendLeadNotification({ send: async message => { sent = message; return { messageId: "mail-1" }; } }, baseLead);
-  assert.equal(sent.to, "abutosystems@gmail.com");
-  assert.equal(sent.from, "notifications@abutosystems.com");
+test("sends only the constructed fixed-recipient message to Resend", async () => {
+  let request;
+  await sendLeadNotification("test-key", baseLead, async (url, init) => {
+    request = { url, init };
+    return Response.json({ id: "mail-1" });
+  });
+  assert.equal(request.url, "https://api.resend.com/emails");
+  assert.equal(request.init.method, "POST");
+  assert.equal(request.init.headers.Authorization, "Bearer test-key");
+  const payload = JSON.parse(request.init.body);
+  assert.deepEqual(payload.to, ["abutosystems@gmail.com"]);
+  assert.equal(payload.from, leadNotificationFrom);
+  assert.equal(leadNotificationFrom, "Abuto Systems <notifications@abutosystems.com>");
+  assert.equal(payload.subject, "New Virtual Consultation Request");
+  assert.match(payload.text, /Reference: qa-reference-123/);
 });
 
-test("fails when the binding fails without changing the lead", async () => {
-  await assert.rejects(sendLeadNotification({ send: async () => { throw new Error("unavailable"); } }, baseLead), /unavailable/);
+test("uses a generic error for Resend rejection without exposing its response body", async () => {
+  await assert.rejects(
+    sendLeadNotification("test-key", baseLead, async () => new Response("private provider details", { status: 429 })),
+    /rate_limited/,
+  );
+});
+
+test("fails on network errors without changing the lead", async () => {
+  await assert.rejects(sendLeadNotification("test-key", baseLead, async () => { throw new Error("unavailable"); }), /unavailable/);
   assert.equal(baseLead.id, "qa-reference-123");
 });
 
-test("fails closed if notification binding is missing", async () => {
+test("fails closed if the Resend API key is missing", async () => {
   await assert.rejects(sendLeadNotification(undefined, baseLead), /not configured/);
 });
 
@@ -76,8 +93,16 @@ test("stores the lead before attempting a notification and treats email failure 
       return { bind: (...values) => ({ run: async () => { operations.push(["stored", values[0]]); return { success: true }; } }) };
     },
   };
-  const binding = { send: async message => { operations.push(["emailed", message.to]); throw new Error("unavailable"); } };
-  assert.equal(await storeLeadAndNotify(database, binding, baseLead), true);
+  const oldWarn = console.warn;
+  console.warn = () => {};
+  const fetcher = async (_url, init) => { operations.push(["emailed", JSON.parse(init.body).to[0]]); throw new Error("unavailable"); };
+  let stored;
+  try {
+    stored = await storeLeadAndNotify(database, "test-key", baseLead, fetcher);
+  } finally {
+    console.warn = oldWarn;
+  }
+  assert.equal(stored, true);
   assert.equal(operations.length, 2);
   assert.equal(operations[0][0], "stored");
   assert.equal(operations[1][0], "emailed");
@@ -86,7 +111,7 @@ test("stores the lead before attempting a notification and treats email failure 
 test("does not notify when D1 rejects the insert", async () => {
   let sendCount = 0;
   const database = { prepare: () => ({ bind: () => ({ run: async () => ({ success: false }) }) }) };
-  const binding = { send: async () => { sendCount += 1; } };
-  assert.equal(await storeLeadAndNotify(database, binding, baseLead), false);
+  const fetcher = async () => { sendCount += 1; return Response.json({ id: "mail-1" }); };
+  assert.equal(await storeLeadAndNotify(database, "test-key", baseLead, fetcher), false);
   assert.equal(sendCount, 0);
 });

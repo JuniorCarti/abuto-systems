@@ -3,14 +3,9 @@ import type { ValidatedLead } from "@/lib/lead-validation";
 export const leadNotificationDestination = "abutosystems@gmail.com";
 export const leadNotificationSender = "notifications@abutosystems.com";
 
-type EmailBinding = {
-  send(message: {
-    to: string;
-    from: string;
-    subject: string;
-    text: string;
-  }): Promise<unknown>;
-};
+export const leadNotificationFrom = `Abuto Systems <${leadNotificationSender}>`;
+
+type NotificationFetch = typeof fetch;
 
 type StoredLead = ValidatedLead & {
   id: string;
@@ -63,15 +58,49 @@ export function buildLeadNotification(lead: StoredLead) {
   return { to: leadNotificationDestination, from: leadNotificationSender, subject, text: lines.join("\n") };
 }
 
-export async function sendLeadNotification(binding: EmailBinding | undefined, lead: StoredLead) {
-  if (!binding) throw new Error("Lead notification binding is not configured");
-  return binding.send(buildLeadNotification(lead));
+export async function sendLeadNotification(apiKey: string | undefined, lead: StoredLead, fetcher: NotificationFetch = fetch) {
+  if (!apiKey) throw new Error("Lead notification is not configured");
+
+  const message = buildLeadNotification(lead);
+  const response = await fetcher("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: leadNotificationFrom,
+      to: [message.to],
+      subject: message.subject,
+      text: message.text,
+    }),
+    signal: AbortSignal.timeout(8000),
+  });
+
+  if (!response.ok) {
+    const reason = response.status === 429 ? "rate_limited" :
+      response.status === 401 || response.status === 403 ? "authentication" :
+      response.status >= 500 ? "provider_unavailable" : "provider_rejected";
+    throw new Error(`Lead notification failed: ${reason}`);
+  }
+
+  let result: unknown;
+  try {
+    result = await response.json();
+  } catch {
+    throw new Error("Lead notification failed: malformed_response");
+  }
+  if (!result || typeof result !== "object" || typeof (result as { id?: unknown }).id !== "string") {
+    throw new Error("Lead notification failed: malformed_response");
+  }
+  return { id: (result as { id: string }).id };
 }
 
 export async function storeLeadAndNotify(
   database: LeadsDatabase,
-  binding: EmailBinding | undefined,
+  apiKey: string | undefined,
   lead: ValidatedLead,
+  fetcher: NotificationFetch = fetch,
 ) {
   const id = crypto.randomUUID();
   const createdAt = new Date().toISOString();
@@ -88,9 +117,12 @@ export async function storeLeadAndNotify(
   if (!result.success) return false;
 
   try {
-    await sendLeadNotification(binding, { ...lead, id, createdAt });
-  } catch {
-    console.error("Lead notification delivery failed after the lead was stored.");
+    await sendLeadNotification(apiKey, { ...lead, id, createdAt }, fetcher);
+  } catch (error) {
+    const reason = error instanceof Error && /^Lead notification failed: (?:rate_limited|authentication|provider_unavailable|provider_rejected|malformed_response)$/.test(error.message)
+      ? error.message.slice("Lead notification failed: ".length)
+      : "network_or_configuration";
+    console.warn("Lead notification delivery failed after the lead was stored.", { reason });
   }
   return true;
 }

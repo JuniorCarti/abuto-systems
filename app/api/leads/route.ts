@@ -66,7 +66,7 @@ export async function POST(request: Request) {
   if (!env.LEADS_DB) return json({ error: "Form submissions are temporarily unavailable. Please use the direct contact options." }, 503);
 
   try {
-    const stored = await storeLeadAndNotify(env.LEADS_DB, env.LEAD_NOTIFICATION_EMAIL, validation.lead);
+    const stored = await storeLeadAndNotify(env.LEADS_DB, env.RESEND_API_KEY, validation.lead);
     if (!stored) return json({ error: "We could not save your request. Please try again or contact us directly." }, 503);
   } catch {
     return json({ error: "We could not save your request. Please try again or contact us directly." }, 503);
