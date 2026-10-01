@@ -1,13 +1,15 @@
 # AskanPharma demo scheduling
 
-This document describes the server-side Google Calendar integration for the existing `abuto-systems-website` Cloudflare Worker. It is an operator and implementation guide; Google verification submission and production deployment remain human gates.
+This document describes the server-side Google Calendar integration for the existing `abuto-systems-website` Cloudflare Worker. It is an operator and implementation guide; any future deployment and Google verification submission remain human gates.
 
 ## Current release state
 
-- The implementation is local and tested with mocks. It has not been pushed or deployed.
+- The implementation is deployed at commit `2772181766f2ca57c2e01eb6ed86a0b318a6a9fc` (Worker version `cf517e26-bd59-442c-a618-b06d4bc7cb05`).
 - Production Google secret presence must be checked by name only with `npx wrangler secret list --name abuto-systems-website`.
-- Do not apply migration `0002_demo_bookings.sql` to the remote database or deploy until the Google credentials and refresh token are configured, production privacy/legal review is complete, and all release checks pass.
-- The production D1 database, jurisdiction, region, replication setting, Worker, domains, Turnstile configuration, and Resend DNS are not changed by this feature.
+- One controlled production booking was manually completed after a successful Turnstile challenge. The confirmation page, Calendar invitation, branded confirmation email, and generated Meet link were confirmed by the operator.
+- A read-only production D1 check found one confirmed booking for 2026-10-02 08:00–08:30 Africa/Nairobi. Calendar, conference, invitation, and notification states are successful; a stored Meet link is present. No personal form data or link is recorded here.
+- Confirmed D1 bookings are treated as busy by the availability filter, so this interval is excluded. A live availability response was not requested because the route requires a valid one-use Turnstile challenge.
+- No additional booking, event, conference, or email was created for verification. The controlled event is retained as evidence. Google verification has not been submitted.
 - The one-time authorization helper uses the Google Desktop OAuth client and sends credentials directly to Wrangler over stdin. It never writes a credential file or displays the refresh token.
 
 ## Existing application flow
@@ -82,11 +84,11 @@ The selected scopes cover the implemented calls: FreeBusy for predefined availab
 
 `/privacy` now identifies Calendar event, attendee, and Meet processing; the data passed to Google; D1 scheduling state; the customer confirmation; and account-controlled Google Calendar retention. `/terms` distinguishes request-received from the specific confirmed state. `/cookies` does not claim that Google Calendar is embedded in the browser. These factual disclosures do not assert a transfer safeguard, adequacy finding, certification, or Kenyan legal compliance.
 
-Before production activation, the owner should document the Kenyan cross-border transfer basis and safeguards applicable to Google processing, alongside the previously identified Cloudflare and Resend transfer review. The privacy notice must be revisited if Google retention/account settings or the actual event fields change.
+The owner should document the Kenyan cross-border transfer basis and safeguards applicable to Google processing, alongside the previously identified Cloudflare and Resend transfer review. This remains a follow-up for the active production service; this document does not assert legal clearance. The privacy notice must be revisited if Google retention/account settings or the actual event fields change.
 
 ## Operator validation plan
 
-Do not perform these production checks until credentials are confirmed, the migration is reviewed and applied, and the new Worker version is approved for release. Use one controlled test booking and identify/cancel it afterward.
+The 2026-10-02 production booking is the retained controlled evidence event. Do not create or cancel a replacement booking for this release record. The checks below describe additional behavior suitable for local automated tests or a separately approved controlled test; production verification must not bypass Turnstile or create duplicate side effects.
 
 1. Submit a demo request from desktop and mobile.
 2. Confirm a valid weekday start at 08:00 and a 17:30–18:00 appointment can be selected.
@@ -118,30 +120,36 @@ npx wrangler deploy --dry-run
 
 Tests mock Google, Turnstile, and Resend. Automated tests do not access production Google Calendar or send real email.
 
-## OAuth verification preparation (draft only)
+## OAuth verification package (final draft; not submitted)
 
 ### Scope justifications
 
 - **`calendar.events.freebusy`:** The server queries FreeBusy for one owner-authorized organizer calendar to remove occupied 30-minute AskanPharma demo slots and recheck a selected slot immediately before reservation. It receives busy ranges only; the website does not expose event details. The broader `calendar` or read-only calendar scopes are unnecessary.
 - **`calendar.events.owned`:** The server creates and reads back one event on the organizer's own calendar, adds the attendee, and persists/retries the event's unique Google Meet conference. An availability-only scope cannot create or update events. The app does not access calendars the organizer does not own or manage calendar ACLs.
 
-These descriptions must be revised if the shipped implementation changes; do not claim a feature that has not passed the manual production checks.
+The production flow was manually confirmed. Idempotency and concurrency are supported by implementation and automated regression tests; no second production booking was made to test them.
 
-### Demo video script
+### Verification video script
 
-Record a real production flow only after the human has configured credentials and validated a controlled booking. Do not simulate or fabricate OAuth screens.
+Record the real production flow and retained controlled booking. Keep attendee email, personal form data, credentials/tokens, private account identifiers, and the complete Meet URL out of frame. Do not record a new consent grant or submit another booking for the video.
 
-1. Show `https://abutosystems.com` and the AskanPharma demo page, the Abuto Systems brand identity, and the booking rules.
-2. Show the actual operator OAuth flow for `abutosystems@gmail.com`; keep credentials out of the recording.
-3. Show the English Google consent screen and exactly `calendar.events.freebusy` and `calendar.events.owned`.
-4. Select a date, show availability, and demonstrate a real busy Calendar interval making a slot unavailable.
-5. Select an available 30-minute slot in EAT and show the final booking confirmation.
-6. Show the resulting organizer Calendar event, its exact duration, attendee, invitation, and generated Google Meet URL.
-7. Return to the customer page/email to show the truthful confirmation and Meet link.
-8. Explain that FreeBusy removes busy times without disclosing event contents; `events.owned` creates and maintains the organizer-owned booking event, attendee, and Meet conference.
+1. Open `https://abutosystems.com` and the AskanPharma demo page. Show Abuto Systems identity, the 30-minute appointment rule, and that a selected time is a request until confirmed.
+2. Show the production availability experience without exposing another person's calendar details. Explain that the server queries FreeBusy for the organizer calendar and suppresses occupied slots using busy ranges only.
+3. Show the retained booking's confirmation state and the 2026-10-02, 08:00–08:30 EAT interval. State that it followed a successful Turnstile challenge. Do not submit the form again.
+4. Show the corresponding event in the organizer-owned Calendar. Hide the attendee address while showing organizer ownership, 30-minute start/end, attendee/invitation presence, and the attached Meet conference. Redact the event ID and full Meet URL.
+5. Show the branded confirmation message with sender identity, time, timezone, duration, and invitation wording. Hide recipient addresses and redact the Meet URL.
+6. Explain that `calendar.events.freebusy` finds and rechecks open times; `calendar.events.owned` creates/read backs/updates the organizer-owned event, adds its attendee, sends the invitation, and attaches its Meet conference. Customers do not connect Google accounts, and no broader Calendar scopes are requested.
+7. If including the Google consent screen, show only the already configured requested scope names and redact account identity. Do not enter credentials, grant new access, or imply that the video submits verification.
 
-### Suggested Additional Info text
+### Verification Centre Additional Info
 
-“Abuto Systems is a technology brand offering AskanPharma. The website uses Google Calendar for virtual demo scheduling on one organizer-owned calendar. `calendar.events.freebusy` is used only to find open 30-minute times and recheck a chosen time before booking. `calendar.events.owned` is used to create/read back and update the corresponding organizer-owned Calendar event, add the customer attendee, and request its Google Meet conference. Customers do not connect their Google accounts. The service does not list calendars, read event descriptions for display, or request broader Calendar scopes. Demo contact details and the selected time are sent to Google only to create the requested event and invitation. If Calendar or Meet cannot complete, the page reports a request for follow-up instead of confirming a booking.”
+> Abuto Systems provides AskanPharma and uses Google Calendar to schedule virtual product demonstrations on one organizer-owned calendar. The website uses `calendar.events.freebusy` to find open 30-minute times and recheck a selected time before booking. It uses `calendar.events.owned` to create and read back the corresponding organizer-owned event, add the requested attendee, send the Calendar invitation, and attach the Google Meet conference. Customers do not connect their Google accounts. The service does not list calendars, expose event details, or request broader Calendar scopes. The customer’s submitted contact details and selected time are sent to Google only to create the requested event and invitation. If Calendar or Meet cannot complete, the website reports that the request needs follow-up rather than claiming the booking is confirmed. The production flow has been manually confirmed: one controlled request resulted in a confirmed 30-minute event in Africa/Nairobi, a Calendar invitation, a generated Meet conference, and a branded confirmation email. No additional production booking was created for verification.
 
-Use this as a draft only after matching it to the actual tested release. The owner must check the current verification form, scope classifications, privacy policy, demo video, project scopes, and client configuration, then submit manually. Never automate “Submit for Verification.”
+### Human submission checklist
+
+1. Confirm the intended Google Cloud project and OAuth client, and that their configured scopes are exactly `calendar.events.freebusy` and `calendar.events.owned`.
+2. Review the current Verification Centre request, scope classifications, and evidence requirements. Do not add broader scopes.
+3. Check the published homepage, support contact, privacy policy, terms, and data handling statements against deployed behavior. Resolve the cross-border transfer safeguards review above before making legal or compliance claims.
+4. Record and review the video using the script above. Redact recipient addresses, attendee email, personal form contents, account identifiers, event IDs, credentials, tokens, and the full Meet URL.
+5. Paste the Additional Info text above and confirm every statement matches the live application and current Google project configuration.
+6. Upload reviewed evidence, inspect the final form, and submit manually only when the owner is ready. This document does not submit the request.
