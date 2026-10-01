@@ -80,7 +80,9 @@ export function LeadForm({ kind }: { kind: LeadFormKind }) {
     }
     setPending(true);
     const formData = new FormData(form);
-    const payload = Object.fromEntries(formData.entries());
+    // Turnstile adds its own hidden form field. The API accepts the token only
+    // through `turnstileToken`, populated from the verified widget callback.
+    const payload = Object.fromEntries([...formData.entries()].filter(([name]) => name !== "cf-turnstile-response"));
     const requestKey = idempotencyKey || (isDemo ? crypto.randomUUID() : "");
     if (isDemo && !idempotencyKey) setIdempotencyKey(requestKey);
     try {
@@ -141,6 +143,10 @@ export function LeadForm({ kind }: { kind: LeadFormKind }) {
 
   function changeDate(date: string) {
     setPreferredDate(date);
+    // A date refresh may abort a verification request after Turnstile has
+    // consumed its token. Always obtain a fresh token for the next lookup.
+    setToken("");
+    setResetCount(value => value + 1);
     setPreferredTime("");
     setAvailableSlots([]);
     setAvailabilityDate("");

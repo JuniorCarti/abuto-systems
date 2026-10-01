@@ -308,7 +308,12 @@ test("contact form collects a real enquiry and gates submission on Turnstile set
 
 test("demo route checks server availability and explains the booking rules", async ({ page }) => {
   await page.addInitScript(() => {
-    window.turnstile = { render(_target, options) { setTimeout(() => options.callback("e2e-turnstile-token"), 0); return "e2e-test-widget"; }, reset() {}, remove() {} };
+    let issueToken;
+    window.turnstile = {
+      render(_target, options) { issueToken = () => options.callback("e2e-turnstile-token"); setTimeout(issueToken, 0); return "e2e-test-widget"; },
+      reset() { setTimeout(() => issueToken?.(), 0); },
+      remove() {},
+    };
   });
   await page.route("**/api/askanpharma/demo/availability", route => route.fulfill({ json: { slots: [
     { start: "2026-10-03T06:00:00.000Z", end: "2026-10-03T06:30:00.000Z", time: "09:00", label: "9:00 AM EAT" },
@@ -333,6 +338,98 @@ test("demo route checks server availability and explains the booking rules", asy
   await expect(preferredTime).toBeDisabled();
   await page.reload();
   await expect(page.locator("#demo-request-form")).toBeVisible();
+});
+
+test("demo booking excludes Turnstile's generated hidden field from the API payload", async ({ page }) => {
+  await page.addInitScript(() => {
+    let issueToken;
+    window.turnstile = {
+      render(target, options) {
+        const form = target.closest("form");
+        const responseField = document.createElement("input");
+        responseField.type = "hidden";
+        responseField.name = "cf-turnstile-response";
+        form.append(responseField);
+        issueToken = () => {
+          const token = `e2e-turnstile-${Date.now()}-${Math.random()}`;
+          responseField.value = token;
+          options.callback(token);
+        };
+        setTimeout(() => issueToken(), 0);
+        return "e2e-test-widget";
+      },
+      reset() { setTimeout(() => issueToken?.(), 0); },
+      remove() {},
+    };
+  });
+
+  const availabilityTokens = [];
+  await page.route("**/api/askanpharma/demo/availability", async route => {
+    const { date, turnstileToken } = route.request().postDataJSON();
+    availabilityTokens.push(turnstileToken);
+    await route.fulfill({ json: { slots: [
+      { start: `${date}T07:00:00.000Z`, end: `${date}T07:30:00.000Z`, time: "10:00", label: "10:00 AM EAT" },
+    ] } });
+  });
+
+  const submitted = [];
+  await page.route("**/api/askanpharma/demo/bookings", async route => {
+    const request = route.request();
+    submitted.push({ payload: request.postDataJSON(), headers: await request.allHeaders() });
+    await route.fulfill({ status: 202, json: { state: "request_received", message: "Request received." } });
+  });
+
+  await page.goto("/products/askanpharma/demo");
+  await page.locator('input[name="name"]').fill("Abuto E2E Lead");
+  await page.locator('input[name="organization"]').fill("E2E Pharmacy");
+  await page.locator('input[name="email"]').fill("e2e-abuto@example.com");
+  await page.locator('input[name="phone"]').fill("+254700000000");
+  await page.locator('textarea[name="message"]').fill("I need to see the Pharmacy Workflow");
+
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Nairobi", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const nextDate = new Date(`${today}T00:00:00.000Z`);
+  nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+  while (nextDate.getUTCDay() === 0) nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+  const date = nextDate.toISOString().slice(0, 10);
+  await page.locator('input[name="preferredDate"]').fill(date);
+  await expect(page.locator('select[name="preferredTime"] option')).toHaveCount(2);
+
+  const refreshedDate = new Date(`${date}T00:00:00.000Z`);
+  refreshedDate.setUTCDate(refreshedDate.getUTCDate() + 1);
+  while (refreshedDate.getUTCDay() === 0) refreshedDate.setUTCDate(refreshedDate.getUTCDate() + 1);
+  const secondDate = refreshedDate.toISOString().slice(0, 10);
+  await page.locator('input[name="preferredDate"]').fill(secondDate);
+  await expect.poll(() => availabilityTokens.length).toBe(2);
+  await expect(page.locator('select[name="preferredTime"] option')).toHaveCount(2);
+  await page.locator('select[name="preferredTime"]').selectOption("10:00");
+  await page.getByRole("button", { name: "Request a Demo" }).click();
+
+  await expect.poll(() => submitted.length).toBe(1);
+  const { payload, headers } = submitted[0];
+  expect(availabilityTokens[0]).not.toBe(availabilityTokens[1]);
+  expect(payload.turnstileToken).not.toBe(availabilityTokens[1]);
+  expect(payload).not.toHaveProperty("cf-turnstile-response");
+  expect(payload.turnstileToken).toMatch(/^e2e-turnstile-/);
+  expect(payload.preferredDate).toBe(secondDate);
+  expect(payload.preferredTime).toBe("10:00");
+  expect(payload.message).toBe("I need to see the Pharmacy Workflow");
+  expect(headers["content-type"]).toMatch(/^application\/json/);
+  expect(headers["idempotency-key"]).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+});
+
+test("booking API maps an unexpected form field to the observed Invalid request response", async ({ page }) => {
+  const response = await page.request.post("/api/askanpharma/demo/bookings", {
+    headers: { "Idempotency-Key": "8d45c668-54c2-4ac2-9bce-3c06e9dbd4b7" },
+    data: {
+      name: "Abuto E2E Lead", organization: "E2E Pharmacy", email: "e2e-abuto@example.com",
+      phone: "+254700000000", town: "", branches: "", preferredDate: "2030-01-01",
+      preferredTime: "10:00", preferredContact: "Email", message: "I need to see the Pharmacy Workflow",
+      website: "", turnstileToken: "e2e-turnstile-token", "cf-turnstile-response": "e2e-turnstile-token",
+    },
+  });
+
+  expect(response.status()).toBe(400);
+  await expect(response.json()).resolves.toMatchObject({ error: "Invalid request." });
 });
 
 test("demo availability and booking reject missing Turnstile tokens", async ({ page }) => {
