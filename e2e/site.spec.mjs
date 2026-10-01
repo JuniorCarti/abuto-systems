@@ -9,6 +9,9 @@ const routes = [
   ["/products/askanpharma/demo", "Request an"],
   ["/about", "Practical software"],
   ["/contact", "Let’s build"],
+  ["/privacy", "Privacy Policy"],
+  ["/terms", "Terms of Service"],
+  ["/cookies", "Cookie Policy"],
 ];
 
 test("all pages load with useful titles and working primary navigation", async ({ page }) => {
@@ -244,6 +247,28 @@ test("logo, footer brand, and favicon load without broken images", async ({ page
   const faviconResponse = await page.request.get(favicon);
   expect(faviconResponse.ok()).toBe(true);
   expect(faviconResponse.headers()["content-type"]).toMatch(/image\/png/);
+});
+
+test("legal pages have canonical metadata, footer links, and responsive readable layout", async ({ page }) => {
+  for (const [path, heading] of [["/privacy", "Privacy Policy"], ["/terms", "Terms of Service"], ["/cookies", "Cookie Policy"]]) {
+    await page.goto(path);
+    await expect(page).toHaveTitle(new RegExp(`${heading} \\| Abuto Systems`));
+    await expect(page.locator("main h1")).toHaveText(heading);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", `https://abutosystems.com${path}`);
+    await expect(page.getByRole("navigation", { name: "On this page" })).toBeVisible();
+    const footerLinks = page.getByRole("contentinfo").getByRole("navigation", { name: "Legal" });
+    for (const [label, href] of [["Privacy", "/privacy"], ["Terms", "/terms"], ["Cookies", "/cookies"]]) {
+      await expect(footerLinks.getByRole("link", { name: label })).toHaveAttribute("href", href);
+    }
+    for (const width of [320, 390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      const sizes = await page.evaluate(() => ({ viewport: innerWidth, document: document.documentElement.scrollWidth }));
+      expect(sizes.document, `${path} horizontal overflow at ${width}px`).toBeLessThanOrEqual(sizes.viewport);
+    }
+    const firstAnchor = page.locator(".legal-toc a").first();
+    await firstAnchor.focus();
+    await expect(firstAnchor).toBeFocused();
+  }
 });
 
 test("layout fits the requested viewport widths", async ({ page }) => {

@@ -31,6 +31,9 @@ test("production routes render through Wrangler's local Worker runtime", async (
       ["/products/askanpharma/demo", "Request an", "VIRTUAL PRODUCT WALKTHROUGH"],
       ["/about", "Practical software", "Ridge Junior Abuto"],
       ["/contact", "something useful", "Send Enquiry"],
+      ["/privacy", "Privacy Policy", "Data Protection Act, 2019"],
+      ["/terms", "Terms of Service", "does not by itself create a customer relationship"],
+      ["/cookies", "Cookie Policy", "Cloudflare Turnstile"],
     ];
     for (const [path, heading, content] of routes) {
       const response = await fetch(`${base}${path}`);
@@ -72,6 +75,7 @@ test("production routes render through Wrangler's local Worker runtime", async (
     const sitemapXml = await sitemap.text();
     assert.match(sitemapXml, /https:\/\/abutosystems\.com\/products\/askanpharma/);
     assert.match(sitemapXml, /https:\/\/abutosystems\.com\/products\/askanpharma\/demo/);
+    for (const path of ["/privacy", "/terms", "/cookies"]) assert.ok(sitemapXml.includes(`https://abutosystems.com${path}`), `${path} sitemap URL`);
     const unsupportedFormMethod = await fetch(`${base}/api/leads`);
     assert.equal(unsupportedFormMethod.status, 405);
     const invalidLead = await fetch(`${base}/api/leads`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "demo" }) });

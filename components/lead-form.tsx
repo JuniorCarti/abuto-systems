@@ -96,7 +96,7 @@ export function LeadForm({ kind }: { kind: LeadFormKind }) {
       {error && <div className="form-error" role="alert"><p>{error}</p>{Object.keys(fieldErrors).length > 0 && <ul>{Object.entries(fieldErrors).map(([field, message]) => <li key={field}>{field}: {message}</li>)}</ul>}</div>}
       {success && <div className="lead-success" role="status" aria-live="polite"><h2>{isDemo ? "Demo request received." : "Enquiry received."}</h2><p>{success}</p>{isDemo && <p>Your preferred date and time are a request only. Abuto Systems will contact you to confirm availability.</p>}</div>}
       <button className="button button-green form-button" type="submit" disabled={pending || !turnstileConfigured}>{pending ? "Sending request…" : isDemo ? "Request a Demo" : "Send Enquiry"}<span aria-hidden="true">↗</span></button>
-      <p className="form-disclaimer">{isDemo ? "This request does not book or confirm an appointment. Please do not submit patient, prescription, medical, password, or payment information." : "Your details are stored securely for follow-up. For an immediate response, use the direct contact options on this page."}</p>
+      <p className="form-disclaimer">{isDemo ? <>This request does not book or confirm an appointment. Please do not submit patient, prescription, medical, password, or payment information. See our <a href="/privacy">Privacy Policy</a>.</> : <>We use the details you provide to respond to your enquiry. Please do not include sensitive information. See our <a href="/privacy">Privacy Policy</a>. For an immediate response, use the direct contact options on this page.</>}</p>
     </form>
   );
 }
