@@ -4,7 +4,11 @@ import vinext from "vinext";
 import { cloudflare } from "@cloudflare/vite-plugin";
 
 export default defineConfig(({ mode }) => {
-  const publicEnv = loadEnv(mode, process.cwd(), "NEXT_PUBLIC_");
+  const publicEnv = Object.fromEntries(
+    Object.entries(loadEnv(mode, process.cwd(), ""))
+      .map(([key, value]) => [key.replace(/^\uFEFF/, ""), value])
+      .filter(([key]) => key.startsWith("NEXT_PUBLIC_")),
+  );
 
   return {
     define: Object.fromEntries(
