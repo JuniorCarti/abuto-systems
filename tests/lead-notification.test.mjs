@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildLeadNotification, leadNotificationDestination, leadNotificationFrom, leadNotificationSender, sendLeadNotification, storeLeadAndNotify } from "../lib/lead-notification.ts";
+import { buildLeadNotification, leadNotificationDestination, leadNotificationFrom, leadNotificationSender, sendDemoConfirmation, sendLeadNotification, storeLeadAndNotify } from "../lib/lead-notification.ts";
 
 const baseLead = {
   id: "qa-reference-123",
@@ -67,6 +67,24 @@ test("sends only the constructed fixed-recipient message to Resend", async () =>
   assert.equal(leadNotificationFrom, "Abuto Systems <notifications@abutosystems.com>");
   assert.equal(payload.subject, "New Virtual Consultation Request");
   assert.match(payload.text, /Reference: qa-reference-123/);
+});
+
+test("sends a confirmed demo email with a stable Resend idempotency key", async () => {
+  let request;
+  await sendDemoConfirmation("test-key", {
+    id: "booking-123", name: "Amina Example", email: "amina@example.com", date: "Monday, 5 October 2026",
+    startTime: "8:00 am", endTime: "8:30 am", meetUrl: "https://meet.google.com/abc-defg-hij",
+  }, async (url, init) => {
+    request = { url: String(url), init, body: JSON.parse(init.body) };
+    return Response.json({ id: "confirmation-1" });
+  });
+  assert.equal(request.url, "https://api.resend.com/emails");
+  assert.equal(request.init.headers["Idempotency-Key"], "askpharma-demo-confirmation/booking-123");
+  assert.deepEqual(request.body.to, ["amina@example.com"]);
+  assert.match(request.body.subject, /AskanPharma Demo Confirmed/);
+  assert.match(request.body.text, /Duration: 30 minutes/);
+  assert.match(request.body.text, /Google Calendar invitation was requested/);
+  assert.match(request.body.text, /https:\/\/meet\.google\.com\/abc-defg-hij/);
 });
 
 test("uses a generic error for Resend rejection without exposing its response body", async () => {

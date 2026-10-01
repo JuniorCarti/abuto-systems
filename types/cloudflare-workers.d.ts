@@ -13,5 +13,8 @@ declare module "cloudflare:workers" {
     LEADS_DB?: D1Database;
     TURNSTILE_SECRET_KEY?: string;
     RESEND_API_KEY?: string;
+    GOOGLE_CALENDAR_CLIENT_ID?: string;
+    GOOGLE_CALENDAR_CLIENT_SECRET?: string;
+    GOOGLE_CALENDAR_REFRESH_TOKEN?: string;
   };
 }

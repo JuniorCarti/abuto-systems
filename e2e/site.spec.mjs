@@ -306,28 +306,36 @@ test("contact form collects a real enquiry and gates submission on Turnstile set
   await expect(page.getByRole("link", { name: /abutosystems@gmail\.com/ }).first()).toBeVisible();
 });
 
-test("demo route presents virtual request fields, business hours, and non-booking language", async ({ page }) => {
+test("demo route checks server availability and explains the booking rules", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.turnstile = { render(_target, options) { setTimeout(() => options.callback("e2e-turnstile-token"), 0); return "e2e-test-widget"; }, reset() {}, remove() {} };
+  });
+  await page.route("**/api/askanpharma/demo/availability", route => route.fulfill({ json: { slots: [
+    { start: "2026-10-03T06:00:00.000Z", end: "2026-10-03T06:30:00.000Z", time: "09:00", label: "9:00 AM EAT" },
+    { start: "2026-10-03T12:30:00.000Z", end: "2026-10-03T13:00:00.000Z", time: "15:30", label: "3:30 PM EAT" },
+  ] } }));
   await page.goto("/products/askanpharma/demo");
   await expect(page.getByRole("heading", { name: /Request an AskanPharma demo/ })).toBeVisible();
-  for (const label of ["Full name", "Pharmacy / Business name", "Email address", "Phone number", "Town / Location", "Number of pharmacy branches", "Preferred demo date", "Preferred demo time", "Preferred contact method"]) {
+  for (const label of ["Full name", "Pharmacy / Business name", "Email address", "Phone number", "Town / Location", "Number of pharmacy branches", "Demo date", "Available demo time", "Preferred contact method"]) {
     await expect(page.getByLabel(new RegExp(label))).toBeVisible();
   }
   await expect(page.locator("#main .virtual-hours-list dt").first()).toBeVisible();
   await expect(page.locator("#main").getByText("East Africa Time (EAT · UTC+3)")).toBeVisible();
   await expect(page.getByText(/does not reserve a time/)).toBeVisible();
+  await expect(page.getByText(/Availability may change until your booking is confirmed/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Request a Demo" })).toBeEnabled();
   await page.locator('input[name="preferredDate"]').fill("2026-10-03");
   const preferredTime = page.locator('select[name="preferredTime"]');
-  await expect(preferredTime.locator("option")).toHaveCount(16);
+  await expect(preferredTime.locator("option")).toHaveCount(3);
   await expect(preferredTime.locator("option").nth(1)).toHaveText("9:00 AM EAT");
-  await expect(preferredTime.locator("option").last()).toHaveText("4:00 PM EAT");
+  await expect(preferredTime.locator("option").last()).toHaveText("3:30 PM EAT");
   await page.locator('input[name="preferredDate"]').fill("2026-10-04");
   await expect(preferredTime).toBeDisabled();
   await page.reload();
   await expect(page.locator("#demo-request-form")).toBeVisible();
 });
 
-test("demo request is rejected when the Turnstile token is absent", async ({ page }) => {
+test("demo availability and booking reject missing Turnstile tokens", async ({ page }) => {
   await page.addInitScript(() => {
     window.turnstile = { render() { return "e2e-test-widget"; }, reset() {}, remove() {} };
   });
@@ -336,24 +344,26 @@ test("demo request is rejected when the Turnstile token is absent", async ({ pag
   await page.locator('input[name="organization"]').fill("E2E Pharmacy");
   await page.locator('input[name="email"]').fill("e2e-abuto@example.com");
   await page.locator('input[name="phone"]').fill("+254700000000");
-  const dateInput = page.locator('input[name="preferredDate"]');
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Nairobi", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
   const nextDate = new Date(`${today}T00:00:00.000Z`);
   nextDate.setUTCDate(nextDate.getUTCDate() + 1);
   while (nextDate.getUTCDay() === 0) nextDate.setUTCDate(nextDate.getUTCDate() + 1);
-  await dateInput.fill(nextDate.toISOString().slice(0, 10));
-  await page.locator('select[name="preferredTime"]').selectOption("10:00");
-
-  await page.getByRole("button", { name: "Request a Demo" }).click();
-  await expect(page.getByRole("alert")).toContainText("Complete the Cloudflare security check before submitting.");
-  const response = await page.request.post("/api/leads", { data: {
-    kind: "demo", name: "Abuto E2E Lead", organization: "E2E Pharmacy", email: "e2e-abuto@example.com",
-    phone: "+254700000000", town: "", branches: "", preferredDate: nextDate.toISOString().slice(0, 10),
-    preferredTime: "10:00", preferredContact: "Email", message: "", website: "", turnstileToken: "",
-  } });
+  const date = nextDate.toISOString().slice(0, 10);
+  const availability = await page.request.post("/api/askanpharma/demo/availability", { data: { date, turnstileToken: "" } });
+  expect(availability.status()).toBe(403);
+  await expect(availability.json()).resolves.toMatchObject({ error: "Complete the security check and try again." });
+  const response = await page.request.post("/api/askanpharma/demo/bookings", {
+    headers: { "Idempotency-Key": "8d45c668-54c2-4ac2-9bce-3c06e9dbd4b7" },
+    data: {
+      name: "Abuto E2E Lead", organization: "E2E Pharmacy", email: "e2e-abuto@example.com",
+      phone: "+254700000000", town: "", branches: "", preferredDate: date,
+      preferredTime: "10:00", preferredContact: "Email", message: "", website: "", turnstileToken: "",
+    },
+  });
   expect(response.status()).toBe(403);
   await expect(response.json()).resolves.toMatchObject({ error: "Complete the security check and try again." });
-  await expect(page.getByRole("heading", { name: "Demo request received." })).toHaveCount(0);
+  const bypass = await page.request.post("/api/leads", { data: { kind: "demo", name: "Abuto E2E Lead" } });
+  expect(bypass.status()).toBe(400);
 });
 
 test("AskanPharma inquiry CTA opens WhatsApp with product context", async ({ page }) => {

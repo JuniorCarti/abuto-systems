@@ -17,7 +17,7 @@ function dateParts(value: string) {
   return { year, month, day, weekday: date.getUTCDay() };
 }
 
-function nairobiDateTime(now: Date) {
+export function nairobiDateTime(now: Date) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: company.timezone,
     year: "numeric", month: "2-digit", day: "2-digit",

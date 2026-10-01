@@ -1,34 +1,12 @@
 import { env } from "cloudflare:workers";
 import { validateLead, type LeadPayload } from "@/lib/lead-validation";
 import { storeLeadAndNotify } from "@/lib/lead-notification";
+import { verifyTurnstile } from "@/lib/turnstile-server";
 
 const maxBodyBytes = 12_000;
 
 function json(body: Record<string, unknown>, status: number) {
   return Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
-}
-
-async function verifyTurnstile(token: unknown, request: Request) {
-  if (typeof token !== "string" || !token || !env.TURNSTILE_SECRET_KEY) return false;
-  const form = new URLSearchParams({ secret: env.TURNSTILE_SECRET_KEY, response: token });
-  const ip = request.headers.get("CF-Connecting-IP");
-  if (ip) form.set("remoteip", ip);
-  try {
-    const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-      method: "POST",
-      body: form,
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!response.ok) return false;
-    const result = await response.json() as { success?: boolean; hostname?: string };
-    const expectedHostname = new URL(request.url).hostname.toLowerCase();
-    const verifiedHostname = result.hostname?.toLowerCase();
-    const localHostnames = new Set(["localhost", "127.0.0.1", "::1"]);
-    const hostMatches = verifiedHostname === expectedHostname || (localHostnames.has(verifiedHostname ?? "") && localHostnames.has(expectedHostname));
-    return result.success === true && hostMatches;
-  } catch {
-    return false;
-  }
 }
 
 export async function POST(request: Request) {
@@ -60,7 +38,8 @@ export async function POST(request: Request) {
   if (typeof payload.website === "string" && payload.website.trim()) return json({ error: "Unable to accept this request." }, 400);
   const validation = validateLead(payload);
   if (!validation.valid) return json({ error: "Please check the highlighted form details.", fields: validation.errors }, 400);
-  if (!await verifyTurnstile(payload.turnstileToken, request)) {
+  if (validation.lead.kind === "demo") return json({ error: "AskanPharma demos must use the availability-backed booking form." }, 409);
+  if (!await verifyTurnstile(payload.turnstileToken, request, env.TURNSTILE_SECRET_KEY)) {
     return json({ error: "Complete the security check and try again." }, 403);
   }
   if (!env.LEADS_DB) return json({ error: "Form submissions are temporarily unavailable. Please use the direct contact options." }, 503);
